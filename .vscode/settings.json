@@ -1,0 +1,5 @@
+{
+    "prettierMonkeyC.compilerLookupRules": "COMPILER2",
+    "prettierMonkeyC.checkCompilerLookupRules": "OFF",
+    "prettierMonkeyC.extraReferenceTypeChecks": true
+}

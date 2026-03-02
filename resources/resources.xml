@@ -1,0 +1,13 @@
+<resources>
+    <fitContributions>
+        <fitField id="0" dataLabel="@Strings.FitRepsLabel" unitLabel="@Strings.FitRepsUnit" sortOrder="0" precision="0" displayInActivityLaps="true" />
+        <fitField id="1" dataLabel="@Strings.FitWeightLabel" unitLabel="@Strings.FitWeightUnit" sortOrder="1" precision="0" displayInActivityLaps="true" />
+        <fitField id="2" dataLabel="@Strings.FitPerfLabel" unitLabel="@Strings.FitPerfUnit" sortOrder="2" precision="0" displayInActivityLaps="true" />
+        <fitField id="3" dataLabel="@Strings.FitWorkloadLabel" unitLabel="@Strings.FitWeightUnit" sortOrder="3" precision="0" displayInActivityLaps="true" />
+        <fitField id="5" dataLabel="@Strings.FitExerciseLabel" unitLabel="@Strings.UnitNone" sortOrder="5" precision="0" displayInActivityLaps="true" />
+        
+        <fitField id="4" dataLabel="@Strings.FitTotalSessionLabel" unitLabel="@Strings.FitWeightUnit" sortOrder="4" precision="0" displayInActivitySummary="true" />
+        <fitField id="7" dataLabel="@Strings.FitProgramLabel" unitLabel="@Strings.UnitNone" sortOrder="7" precision="0" displayInActivitySummary="true" />
+        <fitField id="8" dataLabel="@Strings.FitWattRecordsLabel" unitLabel="@Strings.UnitNone" sortOrder="8" precision="0" displayInActivitySummary="true" />
+    </fitContributions>
+</resources>

@@ -1,0 +1,59 @@
+<properties>
+
+        <property id="stat_sessions" type="number">0</property>
+<property id="stat_totalVolume" type="number">0</property>
+<property id="stat_streak" type="number">0</property>
+
+        <property id="isEgymPlus" type="boolean">true</property>
+        <property id="zirkelOrder" type="string"></property>
+        <property id="activeCircle" type="number">0</property>
+        <property id="isTestMode" type="boolean">false</property>
+        <property id="activeProgramIndex" type="number">0</property>
+        <!-- Upper Body -->
+        <property id="rm_Brustpresse" type="number">0</property>
+        <property id="watt_Brustpresse" type="number">0</property>
+        <property id="rm_Ruderzug" type="number">0</property>
+        <property id="watt_Ruderzug" type="number">0</property>
+        <property id="rm_Latzug" type="number">0</property>
+        <property id="watt_Latzug" type="number">0</property>
+        <property id="rm_Schulterpresse" type="number">0</property>
+        <property id="watt_Schulterpresse" type="number">0</property>
+        <property id="rm_Butterfly" type="number">0</property>
+        <property id="watt_Butterfly" type="number">0</property>
+        <property id="rm_ReverseButterfly" type="number">0</property>
+        <property id="watt_ReverseButterfly" type="number">0</property>
+        <property id="rm_Bizepscurl" type="number">0</property>
+        <property id="watt_Bizepscurl" type="number">0</property>
+        <property id="rm_Trizepspresse" type="number">0</property>
+        <property id="watt_Trizepspresse" type="number">0</property>
+        <property id="rm_Wadentrainer" type="number">0</property>
+        <property id="watt_Wadentrainer" type="number">0</property>
+        <!-- Lower Body -->
+        <property id="rm_Beinpresse" type="number">0</property>
+        <property id="watt_Beinpresse" type="number">0</property>
+        <property id="rm_Beinstrecker" type="number">0</property>
+        <property id="watt_Beinstrecker" type="number">0</property>
+        <property id="rm_Beinbeuger" type="number">0</property>
+        <property id="watt_Beinbeuger" type="number">0</property>
+        <property id="rm_HipThrust" type="number">0</property>
+        <property id="watt_HipThrust" type="number">0</property>
+        <property id="rm_Squat" type="number">0</property>
+        <property id="watt_Squat" type="number">0</property>
+        <property id="rm_Adduktor" type="number">0</property>
+        <property id="watt_Adduktor" type="number">0</property>
+        <property id="rm_Abduktor" type="number">0</property>
+        <property id="watt_Abduktor" type="number">0</property>
+        <property id="rm_Glutaeus" type="number">0</property>
+        <property id="watt_Glutaeus" type="number">0</property>
+
+        <!-- Core -->
+        <property id="rm_Bauchtrainer" type="number">0</property>
+        <property id="watt_Bauchtrainer" type="number">0</property>
+        <property id="rm_Rueckentrainer" type="number">0</property>
+        <property id="watt_Rueckentrainer" type="number">0</property>
+        <property id="rm_SeitlicherBauch" type="number">0</property>
+        <property id="watt_SeitlicherBauch" type="number">0</property>
+
+
+
+</properties>

@@ -1,0 +1,220 @@
+<strings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <string id="AppName">EGYM Training</string>
+    <string id="SettingEgymPlus">EGYM+ Premium Modus</string>
+    <!-- FIT Field Labels -->
+    <string id="FitWeightLabel">Gewicht</string>
+    <string id="FitWeightUnit">kg</string>
+    <string id="FitRepsLabel">Wdh</string>
+    <string id="FitRepsUnit">Wdh</string>
+    <string id="FitPerfLabel">Leistung</string>
+    <string id="FitPerfUnit">Pkt</string>
+    <string id="FitWorkloadLabel">Volumen</string>
+    <string id="FitTotalSessionLabel">Gesamtlast</string>
+    <string id="FitAverageLabel">Schnitt</string>
+    <string id="FitExerciseLabel">Uebung</string>
+    <string id="FitCircuitLabel">Zirkel</string>
+    <string id="FitProgramLabel">Programm</string>
+    <string id="FitMethodLabel">Methode</string>
+    <string id="FitWattRecordsLabel">Rekorde</string>
+    <string id="UnitNone">-</string>
+    <string id="SettingRM_Wadentrainer">Bestwert Wadentrainer (kg)</string>
+    <string id="SettingWatt_Wadentrainer">Watt Wadentrainer</string>
+    <!-- Stats View -->
+    <string id="UIStats">Statistik</string>
+    <string id="UIStatsSub">RM &amp; Watt Uebersicht</string>
+    <string id="UIStatsTitle">STATISTIK</string>
+    <string id="UIStatsSessions">Einheiten</string>
+    <string id="UIStatsVolume">Gesamtvolumen</string>
+    <string id="UIStatsStreak">Serie</string>
+    <string id="UIStatsNoData">Keine Daten</string>
+    <string id="UIStatsDays">T her</string>
+    <string id="UIStatsFilter">Filter</string>
+    <string id="UIStatsFilterAll">Alle</string>
+    <string id="UIStatsFilterRm">RM</string>
+    <string id="UIStatsFilterWatt">Watt</string>
+    <!-- UI Strings -->
+    <string id="UIMenuSaveSub">Training beenden</string>
+    <string id="UINoCircuit">Kein Zirkel</string>
+    <string id="UIHeaderHR">HF</string>
+    <string id="UIHeaderRound">RND</string>
+    <string id="UIAdjustKg">UP/DN Gewicht, OK weiter</string>
+    <string id="UIAdjustKgCompact">UP/DN kg, OK</string>
+    <string id="UINext">NAECHSTE:</string>
+    <string id="UIRateWatt">WATT eingeben</string>
+    <string id="UIRateQuality">QUALITAET bewerten</string>
+    <string id="UIAdjustConfirm">UP/DN aendern, OK fertig</string>
+    <string id="UIAdjustConfirmCompact">UP/DN, OK</string>
+    <string id="UIBreak">PAUSE</string>
+    <string id="UIHintSkip">LINKS ueberspringen</string>
+    <string id="UIHintSkipShort">&lt; ausl.</string>
+    <string id="UIHintBack">RECHTS zurueck</string>
+    <string id="UIHintBackShort">zur. &gt;</string>
+    <string id="UIHintContinue">OK weiter</string>
+    <string id="UIHintContinueCompact">OK weiter</string>
+    <string id="UIHintPickNext">OK Uebung waehlen</string>
+    <string id="UIHintPickNextCompact">OK waehlen</string>
+    <string id="UICircuitComplete">ZIRKEL FERTIG!</string>
+    <string id="UIRoundComplete">RUNDE FERTIG!</string>
+    <string id="UIAnotherRound">Weitere Runde?</string>
+    <string id="UIYes">JA</string>
+    <string id="UINo">NEIN</string>
+    <string id="UINewRecords">NEUE REKORDE:</string>
+    <string id="UINoRecords">Keine neuen Rekorde</string>
+    <string id="UIBackSave">OK oder BACK</string>
+    <string id="UILastExercise">Letzte Uebung</string>
+    <string id="UIStrengthTest">KRAFTTEST</string>
+    <string id="UIPickerChange">UP/DN aendern</string>
+    <string id="UIPickerConfirm">OK bestaetigen</string>
+    <string id="UIDiscarded">Abgebrochen</string>
+    <string id="UIReps">Wdh.</string>
+    <string id="UIConfirmDiscard">Training verwerfen?</string>
+    <string id="UIIndividualAddNext">Naechste hinzuf.</string>
+    <string id="UIIndividualReplaceCurrent">Aktuelle ersetzen</string>
+    <string id="UIIndividualUndoLast">Letzte rueckgaengig</string>
+    <string id="UIActiveMode">Aktiv</string>
+    <string id="UISummarySets">Saetze</string>
+    <string id="UISummaryPrs">PRs</string>
+    <string id="UISummaryAvgQuality">Schnitt Qual.</string>
+    <string id="UISummaryAvgWatt">Schnitt Watt</string>
+    <string id="UISummaryTopPr">Bestes PR</string>
+    <string id="UISummaryTrend">Trend</string>
+    <!-- Menu Strings -->
+    <string id="UIStartTitleBasis">EGYM Basis</string>
+    <string id="UIStartTitlePlus">EGYM+</string>
+    <string id="UIMenuTitle">Menue</string>
+    <string id="UIMenuSave">Speichern</string>
+    <string id="UIMenuDiscard">Verwerfen</string>
+    <string id="UIMenuDiscardSub">Daten loeschen</string>
+    <string id="UIMenuProgram">Programm waehlen</string>
+    <string id="UIStartTitle">Training</string>
+    <string id="UIChooseCircle">Zirkel waehlen</string>
+    <string id="UIRepeatLastSetup">Schnellstart</string>
+    <string id="UIRepeatLastSetupSub">Letztes Training wiederholen</string>
+    <string id="UIRepeatLastSetupEmpty">Noch kein Setup gespeichert</string>
+    <string id="UICustomCircuit">Eigener Zirkel</string>
+    <string id="UICustomCircuitSub">Aus Einstellungen</string>
+    <string id="UIStrength">Oberkoerper</string>
+    <string id="UIStrengthSub">Brust, Ruecken, Core</string>
+    <string id="UILegs">Unterkoerper</string>
+    <string id="UILegsSub">Beine, Gesaess</string>
+    <string id="UIStrengthTestToggle">Krafttest</string>
+    <string id="UIVersionLabel">Version</string>
+    <string id="UIDiagnostics">Diagnose</string>
+    <string id="UIDiagnosticsSub">Speicher &amp; Sync pruefen</string>
+    <string id="UIDiagnosticsTitle">DIAGNOSE</string>
+    <string id="UIDiagnosticsSchema">Schema</string>
+    <string id="UIDiagnosticsProgram">Programm</string>
+    <string id="UIDiagnosticsCircle">Zirkel</string>
+    <string id="UIDiagnosticsPropIo">Prop L/S</string>
+    <string id="UIDiagnosticsStorageIo">Speich L/S</string>
+    <string id="UIDiagnosticsResetHint">OK reset | BACK</string>
+    <string id="UIIndividualSub">Freie Wahl</string>
+    <string id="UIConfirmProgChange">Sicher? Workout geht verloren.</string>
+    <string id="UISaveFailed">Speichern fehlgeschlagen</string>
+    <string id="UIProgramEmpty">-</string>
+    <string id="UIStartTraining">Training starten</string>
+    <string id="UIOn">An</string>
+    <string id="UIOff">Aus</string>
+    <string id="UIIndividual">Individuell</string>
+    <string id="UIPickExercise">Uebung waehlen</string>
+    <!-- Exercise Names -->
+    <string id="ExBrustpresse">Brustpresse</string>
+    <string id="ExBauchtrainer">Bauchtrainer</string>
+    <string id="ExRuderzug">Ruderzug</string>
+    <string id="ExSeitlicherBauch">Seitl. Bauch</string>
+    <string id="ExBeinpresse">Beinpresse</string>
+    <string id="ExLatzug">Latzug</string>
+    <string id="ExButterfly">Butterfly</string>
+    <string id="ExRueckentrainer">Rueckentr.</string>
+    <string id="ExReverseButterfly">Rev. Butterfly</string>
+    <string id="ExSchulterpresse">Schulterpr.</string>
+    <string id="ExSquat">Kniebeuge</string>
+    <string id="ExBeinstrecker">Beinstrecker</string>
+    <string id="ExBeinbeuger">Beinbeuger</string>
+    <string id="ExAbduktor">Abduktor</string>
+    <string id="ExAdduktor">Adduktor</string>
+    <string id="ExHipThrust">Hip Thrust</string>
+    <string id="ExBizepscurl">Bizepscurl</string>
+    <string id="ExTrizepspresse">Trizepspr.</string>
+    <string id="ExGlutaeus">Glutaeus</string>
+    <string id="ExWadentrainer">Wadentrainer</string>
+    <!-- Program Goals -->
+    <string id="GoalEndurance">Ausdauer</string>
+    <string id="GoalMuscleBuild">Muskelaufb.</string>
+    <string id="GoalRobustness">Robustheit</string>
+    <string id="GoalMaxStrength">Max. Kraft</string>
+    <string id="GoalToning">Straffung</string>
+    <string id="GoalFatBurn">Fettverbr.</string>
+    <string id="GoalPower">Power</string>
+    <string id="GoalActivation">Aktivierung</string>
+    <string id="GoalMetabolism">Stoffwechsel</string>
+    <string id="GoalMobilization">Mobilisier.</string>
+    <string id="GoalStrength">Kraft</string>
+    <string id="GoalFunction">Funktion</string>
+    <string id="GoalGettingStarted">Eingewoehnen</string>
+    <string id="GoalProgress">Steigern</string>
+    <string id="GoalIntensify">Intensivieren</string>
+    <string id="GoalMaximize">Maximieren</string>
+    <string id="GoalSpeedStrength">Schnellkraft</string>
+
+    <!-- Training Methods -->
+    <string id="MethodRegular">Regular</string>
+    <string id="MethodAdaptive">Adaptiv</string>
+    <string id="MethodNegative">Negativ</string>
+    <string id="MethodExplonic">Explonic</string>
+    <string id="MethodIsokinetic">Isokinetisch</string>
+
+    <!-- Settings -->
+    <string id="SettingCircuitOrder">Zirkel (kommagetrennt).
+Namen: Brustpresse, Bauchtrainer, Ruderzug,
+Seitlicher Bauch, Beinpresse, Latzug, Butterfly,
+Rueckentrainer, Reverse Butterfly, Schulterpresse,
+Squat, Beinstrecker, Beinbeuger, Abduktor,
+Adduktor, Hip Thrust, Bizepscurl, Trizepspresse,
+Glutaeus</string>
+    <string id="SettingProgram">Programm</string>
+    <string id="SettingRM_Brustpresse">RM Brustpresse (kg)</string>
+    <string id="SettingWatt_Brustpresse">Watt Brustpresse</string>
+    <string id="SettingRM_Ruderzug">RM Ruderzug (kg)</string>
+    <string id="SettingWatt_Ruderzug">Watt Ruderzug</string>
+    <string id="SettingRM_Latzug">RM Latzug (kg)</string>
+    <string id="SettingWatt_Latzug">Watt Latzug</string>
+    <string id="SettingRM_Schulterpresse">RM Schulterpresse (kg)</string>
+    <string id="SettingWatt_Schulterpresse">Watt Schulterpresse</string>
+    <string id="SettingRM_Butterfly">RM Butterfly (kg)</string>
+    <string id="SettingWatt_Butterfly">Watt Butterfly</string>
+    <string id="SettingRM_ReverseButterfly">RM Rev. Butterfly (kg)</string>
+    <string id="SettingWatt_ReverseButterfly">Watt Rev. Butterfly</string>
+    <string id="SettingRM_Bizepscurl">RM Bizepscurl (kg)</string>
+    <string id="SettingWatt_Bizepscurl">Watt Bizepscurl</string>
+    <string id="SettingRM_Trizepspresse">RM Trizepspresse (kg)</string>
+    <string id="SettingWatt_Trizepspresse">Watt Trizepspresse</string>
+    <string id="SettingRM_Beinpresse">RM Beinpresse (kg)</string>
+    <string id="SettingWatt_Beinpresse">Watt Beinpresse</string>
+    <string id="SettingRM_Beinstrecker">RM Beinstrecker (kg)</string>
+    <string id="SettingWatt_Beinstrecker">Watt Beinstrecker</string>
+    <string id="SettingRM_Beinbeuger">RM Beinbeuger (kg)</string>
+    <string id="SettingWatt_Beinbeuger">Watt Beinbeuger</string>
+    <string id="SettingRM_HipThrust">RM Hip Thrust (kg)</string>
+    <string id="SettingWatt_HipThrust">Watt Hip Thrust</string>
+    <string id="SettingRM_Squat">RM Kniebeuge (kg)</string>
+    <string id="SettingWatt_Squat">Watt Kniebeuge</string>
+    <string id="SettingRM_Abduktor">RM Abduktor (kg)</string>
+    <string id="SettingWatt_Abduktor">Watt Abduktor</string>
+    <string id="SettingRM_Adduktor">RM Adduktor (kg)</string>
+    <string id="SettingWatt_Adduktor">Watt Adduktor</string>
+    <string id="SettingRM_Glutaeus">RM Glutaeus (kg)</string>
+    <string id="SettingWatt_Glutaeus">Watt Glutaeus</string>
+    <string id="SettingRM_Bauchtrainer">RM Bauchtrainer (kg)</string>
+    <string id="SettingWatt_Bauchtrainer">Watt Bauchtrainer</string>
+    <string id="SettingRM_Rueckentrainer">RM Rueckentrainer (kg)</string>
+    <string id="SettingWatt_Rueckentrainer">Watt Rueckentrainer</string>
+    <string id="SettingRM_SeitlicherBauch">RM Seitl. Bauch (kg)</string>
+    <string id="SettingWatt_SeitlicherBauch">Watt Seitl. Bauch</string>
+</strings>
+
+
+
+
+
+

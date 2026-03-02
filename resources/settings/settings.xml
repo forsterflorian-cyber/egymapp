@@ -1,0 +1,149 @@
+<settings>
+    <setting propertyKey="@Properties.isEgymPlus" title="@Strings.SettingEgymPlus">
+        <settingConfig type="boolean" />
+    </setting>
+
+    <setting propertyKey="@Properties.zirkelOrder" title="@Strings.SettingCircuitOrder">
+        <settingConfig type="alphaNumeric" />
+    </setting>
+
+    <setting propertyKey="@Properties.rm_Brustpresse" title="@Strings.SettingRM_Brustpresse">
+        <settingConfig type="numeric" min="0" max="999" />
+    </setting>
+    <setting propertyKey="@Properties.watt_Brustpresse" title="@Strings.SettingWatt_Brustpresse">
+        <settingConfig type="numeric" min="0" max="9999" />
+    </setting>
+
+    <setting propertyKey="@Properties.rm_Ruderzug" title="@Strings.SettingRM_Ruderzug">
+        <settingConfig type="numeric" min="0" max="999" />
+    </setting>
+    <setting propertyKey="@Properties.watt_Ruderzug" title="@Strings.SettingWatt_Ruderzug">
+        <settingConfig type="numeric" min="0" max="9999" />
+    </setting>
+
+    <setting propertyKey="@Properties.rm_Latzug" title="@Strings.SettingRM_Latzug">
+        <settingConfig type="numeric" min="0" max="999" />
+    </setting>
+    <setting propertyKey="@Properties.watt_Latzug" title="@Strings.SettingWatt_Latzug">
+        <settingConfig type="numeric" min="0" max="9999" />
+    </setting>
+
+    <setting propertyKey="@Properties.rm_Schulterpresse" title="@Strings.SettingRM_Schulterpresse">
+        <settingConfig type="numeric" min="0" max="999" />
+    </setting>
+    <setting propertyKey="@Properties.watt_Schulterpresse" title="@Strings.SettingWatt_Schulterpresse">
+        <settingConfig type="numeric" min="0" max="9999" />
+    </setting>
+
+    <setting propertyKey="@Properties.rm_Butterfly" title="@Strings.SettingRM_Butterfly">
+        <settingConfig type="numeric" min="0" max="999" />
+    </setting>
+    <setting propertyKey="@Properties.watt_Butterfly" title="@Strings.SettingWatt_Butterfly">
+        <settingConfig type="numeric" min="0" max="9999" />
+    </setting>
+
+    <setting propertyKey="@Properties.rm_ReverseButterfly" title="@Strings.SettingRM_ReverseButterfly">
+        <settingConfig type="numeric" min="0" max="999" />
+    </setting>
+    <setting propertyKey="@Properties.watt_ReverseButterfly" title="@Strings.SettingWatt_ReverseButterfly">
+        <settingConfig type="numeric" min="0" max="9999" />
+    </setting>
+
+    <setting propertyKey="@Properties.rm_Bizepscurl" title="@Strings.SettingRM_Bizepscurl">
+        <settingConfig type="numeric" min="0" max="999" />
+    </setting>
+    <setting propertyKey="@Properties.watt_Bizepscurl" title="@Strings.SettingWatt_Bizepscurl">
+        <settingConfig type="numeric" min="0" max="9999" />
+    </setting>
+
+    <setting propertyKey="@Properties.rm_Trizepspresse" title="@Strings.SettingRM_Trizepspresse">
+        <settingConfig type="numeric" min="0" max="999" />
+    </setting>
+    <setting propertyKey="@Properties.watt_Trizepspresse" title="@Strings.SettingWatt_Trizepspresse">
+        <settingConfig type="numeric" min="0" max="9999" />
+    </setting>
+
+    <setting propertyKey="@Properties.rm_Beinpresse" title="@Strings.SettingRM_Beinpresse">
+        <settingConfig type="numeric" min="0" max="999" />
+    </setting>
+    <setting propertyKey="@Properties.watt_Beinpresse" title="@Strings.SettingWatt_Beinpresse">
+        <settingConfig type="numeric" min="0" max="9999" />
+    </setting>
+
+    <setting propertyKey="@Properties.rm_Beinstrecker" title="@Strings.SettingRM_Beinstrecker">
+        <settingConfig type="numeric" min="0" max="999" />
+    </setting>
+    <setting propertyKey="@Properties.watt_Beinstrecker" title="@Strings.SettingWatt_Beinstrecker">
+        <settingConfig type="numeric" min="0" max="9999" />
+    </setting>
+
+    <setting propertyKey="@Properties.rm_Beinbeuger" title="@Strings.SettingRM_Beinbeuger">
+        <settingConfig type="numeric" min="0" max="999" />
+    </setting>
+    <setting propertyKey="@Properties.watt_Beinbeuger" title="@Strings.SettingWatt_Beinbeuger">
+        <settingConfig type="numeric" min="0" max="9999" />
+    </setting>
+
+    <setting propertyKey="@Properties.rm_HipThrust" title="@Strings.SettingRM_HipThrust">
+        <settingConfig type="numeric" min="0" max="999" />
+    </setting>
+    <setting propertyKey="@Properties.watt_HipThrust" title="@Strings.SettingWatt_HipThrust">
+        <settingConfig type="numeric" min="0" max="9999" />
+    </setting>
+
+    <setting propertyKey="@Properties.rm_Squat" title="@Strings.SettingRM_Squat">
+        <settingConfig type="numeric" min="0" max="999" />
+    </setting>
+    <setting propertyKey="@Properties.watt_Squat" title="@Strings.SettingWatt_Squat">
+        <settingConfig type="numeric" min="0" max="9999" />
+    </setting>
+
+    <setting propertyKey="@Properties.rm_Adduktor" title="@Strings.SettingRM_Adduktor">
+        <settingConfig type="numeric" min="0" max="999" />
+    </setting>
+    <setting propertyKey="@Properties.watt_Adduktor" title="@Strings.SettingWatt_Adduktor">
+        <settingConfig type="numeric" min="0" max="9999" />
+    </setting>
+
+    <setting propertyKey="@Properties.rm_Abduktor" title="@Strings.SettingRM_Abduktor">
+        <settingConfig type="numeric" min="0" max="999" />
+    </setting>
+    <setting propertyKey="@Properties.watt_Abduktor" title="@Strings.SettingWatt_Abduktor">
+        <settingConfig type="numeric" min="0" max="9999" />
+    </setting>
+
+    <setting propertyKey="@Properties.rm_Glutaeus" title="@Strings.SettingRM_Glutaeus">
+        <settingConfig type="numeric" min="0" max="999" />
+    </setting>
+    <setting propertyKey="@Properties.watt_Glutaeus" title="@Strings.SettingWatt_Glutaeus">
+        <settingConfig type="numeric" min="0" max="9999" />
+    </setting>
+
+    <setting propertyKey="@Properties.rm_Wadentrainer" title="@Strings.SettingRM_Wadentrainer">
+        <settingConfig type="numeric" min="0" max="999" />
+    </setting>
+    <setting propertyKey="@Properties.watt_Wadentrainer" title="@Strings.SettingWatt_Wadentrainer">
+        <settingConfig type="numeric" min="0" max="9999" />
+    </setting>
+
+    <setting propertyKey="@Properties.rm_Bauchtrainer" title="@Strings.SettingRM_Bauchtrainer">
+        <settingConfig type="numeric" min="0" max="999" />
+    </setting>
+    <setting propertyKey="@Properties.watt_Bauchtrainer" title="@Strings.SettingWatt_Bauchtrainer">
+        <settingConfig type="numeric" min="0" max="9999" />
+    </setting>
+
+    <setting propertyKey="@Properties.rm_Rueckentrainer" title="@Strings.SettingRM_Rueckentrainer">
+        <settingConfig type="numeric" min="0" max="999" />
+    </setting>
+    <setting propertyKey="@Properties.watt_Rueckentrainer" title="@Strings.SettingWatt_Rueckentrainer">
+        <settingConfig type="numeric" min="0" max="9999" />
+    </setting>
+
+    <setting propertyKey="@Properties.rm_SeitlicherBauch" title="@Strings.SettingRM_SeitlicherBauch">
+        <settingConfig type="numeric" min="0" max="999" />
+    </setting>
+    <setting propertyKey="@Properties.watt_SeitlicherBauch" title="@Strings.SettingWatt_SeitlicherBauch">
+        <settingConfig type="numeric" min="0" max="9999" />
+    </setting>
+</settings>

@@ -1,0 +1,19 @@
+# Connect IQ build output
+bin/
+gen/
+mir/
+internal-mir/
+
+# Generated app packages
+*.iq
+*.prg
+
+# Local editor/tool state
+.VSCodeCounter/
+
+# Temp files
+*.tmp
+*.temp
+*.bak
+*.orig
+Thumbs.db

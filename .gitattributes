@@ -1,0 +1,10 @@
+* text=auto
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.bmp binary
+*.iq binary
+*.prg binary
