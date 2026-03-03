@@ -78,12 +78,15 @@
     <string id="UISummaryAvgWatt">Schnitt Watt</string>
     <string id="UISummaryTopPr">Bestes PR</string>
     <string id="UISummaryTrend">Trend</string>
-    <string id="UISummaryTrendVsLast">vs. zuletzt</string>
+    <string id="UISummaryTrendVsLast">Aenderung gg. zuletzt</string>
+    <string id="UISummaryTrendSame">wie zuletzt</string>
     <!-- Menu Strings -->
     <string id="UIStartTitleBasis">EGYM Basis</string>
     <string id="UIStartTitlePlus">EGYM+</string>
     <string id="UIMenuTitle">Menue</string>
     <string id="UIMenuSave">Speichern</string>
+    <string id="UIMenuSaveFlow">Speichern + Flow</string>
+    <string id="UIMenuSaveFlowSub">Training und Reihenfolge</string>
     <string id="UIMenuDiscard">Verwerfen</string>
     <string id="UIMenuDiscardSub">Daten loeschen</string>
     <string id="UIMenuProgram">Programm waehlen</string>
@@ -91,6 +94,8 @@
     <string id="UIChooseCircle">Zirkel waehlen</string>
     <string id="UIRepeatLastSetup">Schnellstart</string>
     <string id="UIRepeatLastSetupSub">Letztes Training wiederholen</string>
+    <string id="UIRepeatLastFreeflow">Letzten Flow starten</string>
+    <string id="UIRepeatLastFreeflowSub">Gespeicherte Reihenfolge</string>
     <string id="UIRepeatLastSetupEmpty">Noch kein Setup gespeichert</string>
     <string id="UIResetCalibration">Kalibrierung loeschen</string>
     <string id="UIResetCalibrationSub">Gelernte Anpassung loeschen</string>

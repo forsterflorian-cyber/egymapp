@@ -72,6 +72,7 @@ class EGYMView extends WatchUi.View {
     var isFirstStart as Boolean = true;
     var _pendingPowerTest as Boolean = false;
     var _individualPickMode as Number = IND_PICK_ADD;
+    var _persistCompletedFreeflowOnSave as Boolean = false;
 
     // Overlay flags
     var isShowingSuccess as Boolean = false;
@@ -140,6 +141,7 @@ class EGYMView extends WatchUi.View {
     var _sSummaryTopPr as String = "";
     var _sSummaryTrend as String = "";
     var _sSummaryTrendVsLast as String = "";
+    var _sSummaryTrendSame as String = "";
 
     // Cached per-phase labels
     var _cachedProgLabel as String = "";
@@ -610,6 +612,9 @@ class EGYMView extends WatchUi.View {
     // ========================================================
 
     function forceEndZirkel() as Void {
+        var saveFlow = _persistCompletedFreeflowOnSave;
+        _persistCompletedFreeflowOnSave = false;
+
         if (sm.hasSession()) {
             var recStr = buildRecordsString();
             var prog = getActiveProg();
@@ -621,6 +626,9 @@ class EGYMView extends WatchUi.View {
                 recStr
             );
             if (saved) {
+                if (saveFlow) {
+                    saveCompletedFreeflow();
+                }
                 _previousSessionVolume = EGYMSafeStore.getStorageNumber(EGYMKeys.LAST_SESSION_VOLUME, 0);
                 try {
                     updateSessionStats();
@@ -642,6 +650,11 @@ class EGYMView extends WatchUi.View {
             isShowingSaveFailed = hasWorkoutProgress();
         }
         WatchUi.requestUpdate();
+    }
+
+    function forceEndZirkelAndSaveFlow() as Void {
+        _persistCompletedFreeflowOnSave = true;
+        forceEndZirkel();
     }
 
     function discardSession() as Void {
@@ -668,7 +681,14 @@ class EGYMView extends WatchUi.View {
         isShowingDiscarded = false;
         isShowingSaveFailed = false;
         resetSessionState();
-        WatchUi.popView(WatchUi.SLIDE_DOWN);
+
+        var app = Application.getApp() as EGYMApp;
+        var freshMenu = app.createStartMenu();
+        WatchUi.switchToView(
+            freshMenu,
+            new EGYMStartMenuDelegate(),
+            WatchUi.SLIDE_DOWN
+        );
     }
 
     function cleanupAndExit() as Void {
@@ -765,6 +785,41 @@ class EGYMView extends WatchUi.View {
     }
 
     // ========================================================
+    private function getCompletedFreeflow() as Array<String> {
+        var completed = [] as Array<String>;
+        if (!isIndividualMode || zirkel.size() == 0) {
+            return completed;
+        }
+
+        var lastIndex = index - 1;
+        if (currentPhase == PHASE_BREAK || isAskingForNewRound || isShowingSuccess) {
+            lastIndex = index;
+        }
+        if (lastIndex >= zirkel.size()) {
+            lastIndex = zirkel.size() - 1;
+        }
+        if (lastIndex < 0) {
+            return completed;
+        }
+
+        for (var j = 0; j <= lastIndex; j++) {
+            completed.add(zirkel[j]);
+        }
+        return completed;
+    }
+
+    private function canSaveCompletedFreeflow() as Boolean {
+        return isIndividualMode && getCompletedFreeflow().size() >= 3;
+    }
+
+    private function saveCompletedFreeflow() as Void {
+        var completed = getCompletedFreeflow();
+        if (completed.size() < 3) {
+            return;
+        }
+        EGYMSafeStore.setStorageValue(EGYMKeys.LAST_SAVED_FREEFLOW, completed);
+    }
+
     // REP PARSING
     // ========================================================
 
@@ -857,6 +912,14 @@ class EGYMView extends WatchUi.View {
     function openProgramMenu() as Void {
         var menu = new WatchUi.Menu2({ :title => WatchUi.loadResource(Rez.Strings.UIMenuTitle) });
         menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.UIMenuSave), null, "finish", {}));
+        if (canSaveCompletedFreeflow()) {
+            menu.addItem(new WatchUi.MenuItem(
+                WatchUi.loadResource(Rez.Strings.UIMenuSaveFlow),
+                WatchUi.loadResource(Rez.Strings.UIMenuSaveFlowSub),
+                "save_flow",
+                {}
+            ));
+        }
         menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.UIMenuDiscard), WatchUi.loadResource(Rez.Strings.UIMenuDiscardSub), "discard", {}));
         WatchUi.pushView(menu, new EGYMMenuDelegate(self), WatchUi.SLIDE_UP);
     }
@@ -1110,6 +1173,7 @@ class EGYMView extends WatchUi.View {
         _sSummaryAvgWatt = WatchUi.loadResource(Rez.Strings.UISummaryAvgWatt);
         _sSummaryTopPr = WatchUi.loadResource(Rez.Strings.UISummaryTopPr);
         _sSummaryTrendVsLast = WatchUi.loadResource(Rez.Strings.UISummaryTrendVsLast);
+        _sSummaryTrendSame = WatchUi.loadResource(Rez.Strings.UISummaryTrendSame);
         _sSummaryTrend = WatchUi.loadResource(Rez.Strings.UISummaryTrend);
     }
 
@@ -1118,6 +1182,7 @@ class EGYMView extends WatchUi.View {
         isIndividualMode = false;
         _pendingPowerTest = false;
         _individualPickMode = IND_PICK_ADD;
+        _persistCompletedFreeflowOnSave = false;
         isWaitingForExercisePick = false;
         index = 0;
         currentRound = 1;
@@ -1463,17 +1528,21 @@ class EGYMView extends WatchUi.View {
         }
 
         var diff = sessionTotalKg - _previousSessionVolume;
+        if (diff == 0) {
+            return _sSummaryTrend + ": " + _sSummaryTrendSame;
+        }
+
         var absDiff = diff < 0 ? -diff : diff;
         var pct = Math.round((absDiff * 100.0) / _previousSessionVolume).toNumber();
 
-        if (pct == 0 && diff != 0) {
+        if (pct == 0) {
             pct = 1;
         }
 
         var signedPct = pct.toString() + "%";
         if (diff > 0) {
             signedPct = "+" + signedPct;
-        } else if (diff < 0) {
+        } else {
             signedPct = "-" + signedPct;
         }
 

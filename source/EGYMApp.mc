@@ -1,5 +1,6 @@
 import Toybox.Application;
 import Toybox.Lang;
+import Toybox.Math;
 import Toybox.System;
 import Toybox.StringUtil;
 import Toybox.WatchUi;
@@ -35,7 +36,10 @@ class EGYMApp extends Application.AppBase {
     // Storage schema for watch-side persisted data.
     private const CURRENT_STORAGE_SCHEMA_VERSION = 1;
     private const SANITY_LOG_PREFIX = "[EGYM sanity] ";
-    private const APP_VERSION_TAG = "v0.6";
+    private const APP_VERSION_TAG = "v0.6.1";
+    private const LEARNED_FACTOR_SCALE = 1000;
+    private const MIN_LEARNED_FACTOR = 200;
+    private const MAX_LEARNED_FACTOR = 1200;
 
     // ========================================================
     // LIFECYCLE
@@ -77,10 +81,91 @@ class EGYMApp extends Application.AppBase {
         _calibrationResetCompleted = false;
     }
 
+    private function runLearnedCalibrationCleanup() as Void {
+        var activeGen = EGYMSafeStore.getStorageNumber(EGYMKeys.LEARNED_FACTOR_GEN, 0);
+        if (activeGen <= 0) {
+            return;
+        }
+
+        var cleanupGen = EGYMSafeStore.getStorageNumber(EGYMKeys.LEARNED_FACTOR_CLEANUP_GEN, 0);
+        if (cleanupGen < 0) {
+            cleanupGen = 0;
+        }
+        if (cleanupGen >= activeGen) {
+            return;
+        }
+
+        clearLearnedCalibrationGeneration(cleanupGen);
+        EGYMSafeStore.setStorageValue(EGYMKeys.LEARNED_FACTOR_CLEANUP_GEN, cleanupGen + 1);
+    }
+
+    private function clearLearnedCalibrationGeneration(targetGen as Number) as Void {
+        var cleanedExercises = EGYMConfig.getCleanedExerciseNames();
+        var seenSuffixes = {} as Dictionary<String, Boolean>;
+
+        clearLearnedCalibrationForPrograms(cleanedExercises, EGYMConfig.getBasicPrograms(), targetGen, seenSuffixes);
+        clearLearnedCalibrationForPrograms(cleanedExercises, EGYMConfig.getAllPrograms(), targetGen, seenSuffixes);
+    }
+
+    private function clearLearnedCalibrationForPrograms(
+        cleanedExercises as Array<String>,
+        programs as Array<Dictionary>,
+        targetGen as Number,
+        seenSuffixes as Dictionary<String, Boolean>
+    ) as Void {
+        for (var i = 0; i < programs.size(); i++) {
+            var keySuffix = getLearnedCalibrationKeySuffix(programs[i] as Dictionary, targetGen);
+            if (keySuffix.length() == 0 || seenSuffixes.hasKey(keySuffix)) {
+                continue;
+            }
+
+            seenSuffixes[keySuffix] = true;
+            for (var j = 0; j < cleanedExercises.size(); j++) {
+                var cleanupKey = EGYMKeys.LEARNED_FACTOR_PREFIX + cleanedExercises[j] + keySuffix;
+                if (EGYMSafeStore.getStorageValue(cleanupKey) != null) {
+                    EGYMSafeStore.deleteStorageValue(cleanupKey);
+                }
+            }
+        }
+    }
+
+    private function getLearnedCalibrationKeySuffix(program as Dictionary, targetGen as Number) as String {
+        var factorBasis = getProgramFactorBasis(program);
+        if (factorBasis <= 0) {
+            return "";
+        }
+
+        var keySuffix = "_" +
+            EGYMConfig.getProgramPrefix(program) + "_" +
+            EGYMConfig.getProgramMethodKey(program) + "_" +
+            factorBasis.toString();
+        if (targetGen > 0) {
+            keySuffix += "_g" + targetGen.toString();
+        }
+        return keySuffix;
+    }
+
+    private function getProgramFactorBasis(program as Dictionary) as Number {
+        var factor = EGYMConfig.getProgramIntensityFactor(program);
+        if (factor <= 0.0) {
+            return 0;
+        }
+
+        var basis = Math.round(factor * (LEARNED_FACTOR_SCALE * 1.0)).toNumber();
+        if (basis < MIN_LEARNED_FACTOR) {
+            return MIN_LEARNED_FACTOR;
+        }
+        if (basis > MAX_LEARNED_FACTOR) {
+            return MAX_LEARNED_FACTOR;
+        }
+        return basis;
+    }
+
     //! Called when the app starts; syncs settings from Connect Mobile
     function onStart(state as Dictionary?) as Void {
         EGYMSafeStore.resetErrorCounters();
         runStorageMigrations();
+        runLearnedCalibrationCleanup();
         syncAndMigrateProperties();
         runStartupSanityValidator();
     }
@@ -706,6 +791,18 @@ class EGYMApp extends Application.AppBase {
                     WatchUi.loadResource(Rez.Strings.UIRepeatLastSetup) as String,
                     getLastSetupMenuSubLabel(),
                     "repeat_last_setup",
+                    {}
+                )
+            );
+        }
+
+        var savedFreeflow = EGYMSafeStore.getStorageStringArray(EGYMKeys.LAST_SAVED_FREEFLOW);
+        if (savedFreeflow != null && savedFreeflow.size() > 0) {
+            startMenu.addItem(
+                new WatchUi.MenuItem(
+                    WatchUi.loadResource(Rez.Strings.UIRepeatLastFreeflow) as String,
+                    WatchUi.loadResource(Rez.Strings.UIRepeatLastFreeflowSub) as String,
+                    "repeat_last_freeflow",
                     {}
                 )
             );

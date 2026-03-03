@@ -71,6 +71,10 @@ class EGYMStartMenuDelegate extends WatchUi.Menu2InputDelegate {
             applyLastSetup(getWorkoutView());
             return;
         }
+        if (idStr.equals("repeat_last_freeflow")) {
+            startSavedFreeflow(getWorkoutView());
+            return;
+        }
         if (idStr.equals("start_workout")) {
             startTraining(getWorkoutView());
             return;
@@ -196,13 +200,7 @@ class EGYMStartMenuDelegate extends WatchUi.Menu2InputDelegate {
     // ========================================================
 
     private function startTraining(view as EGYMView) as Void {
-        if (_trainingStarted) {
-            return;
-        }
-        _trainingStarted = true;
-
         var app = Application.getApp() as EGYMApp;
-
         var circleId = EGYMSafeStore.getPropertyNumber(EGYMKeys.ACTIVE_CIRCLE, 0);
         if (circleId < 0 || circleId > 3) {
             circleId = 0;
@@ -223,19 +221,47 @@ class EGYMStartMenuDelegate extends WatchUi.Menu2InputDelegate {
             selectedZirkel = [] as Array<String>;
         }
 
-        if (selectedZirkel == null || selectedZirkel.size() == 0) {
+        var progIndex = view.safeLoadProgIndex();
+        startPreparedTraining(view, selectedZirkel, isIndividual, progIndex, circleId, true);
+    }
+
+    private function startPreparedTraining(
+        view as EGYMView,
+        selectedZirkel as Array<String>?,
+        isIndividual as Boolean,
+        progIndex as Number,
+        circleId as Number,
+        persistSetup as Boolean
+    ) as Void {
+        if (_trainingStarted) {
+            return;
+        }
+        _trainingStarted = true;
+
+        var app = Application.getApp() as EGYMApp;
+        var activeZirkel = selectedZirkel;
+        if (activeZirkel == null || activeZirkel.size() == 0) {
             if (!isIndividual) {
-                selectedZirkel = app.copyArray(app.getDefaultZirkel());
+                activeZirkel = app.copyArray(app.getDefaultZirkel());
             }
         }
-        // Persist last used zirkel for StatsView
-        EGYMSafeStore.setStorageValue(EGYMKeys.LAST_ZIRKEL, selectedZirkel);
-        view.zirkel = selectedZirkel as Array<String>;
-        var progIndex = view.safeLoadProgIndex();
-        saveLastSetupSnapshot(progIndex, circleId);
+        if (activeZirkel == null) {
+            activeZirkel = [] as Array<String>;
+        }
+
+        EGYMSafeStore.setStorageValue(EGYMKeys.LAST_ZIRKEL, activeZirkel);
+        if (persistSetup) {
+            saveLastSetupSnapshot(progIndex, circleId);
+        }
         view.setTestMode(_isTestMode);
         view.updateProgram(progIndex);
         view.isIndividualMode = isIndividual;
+        view.zirkel = activeZirkel as Array<String>;
+        if (activeZirkel.size() > 0) {
+            view.initExercisePhase();
+        } else {
+            view.refreshLabels();
+        }
 
         WatchUi.pushView(view, new EGYMDelegate(view), WatchUi.SLIDE_LEFT);
 
@@ -250,6 +276,16 @@ class EGYMStartMenuDelegate extends WatchUi.Menu2InputDelegate {
     function resetStartFlag() as Void {
         _trainingStarted = false;
         _resetTimer = null;
+    }
+
+    private function startSavedFreeflow(view as EGYMView) as Void {
+        var savedFlow = EGYMSafeStore.getStorageStringArray(EGYMKeys.LAST_SAVED_FREEFLOW);
+        if (savedFlow == null || savedFlow.size() == 0) {
+            return;
+        }
+
+        var progIndex = view.safeLoadProgIndex();
+        startPreparedTraining(view, savedFlow, false, progIndex, 0, false);
     }
 
     private function applyLastSetup(view as EGYMView) as Void {

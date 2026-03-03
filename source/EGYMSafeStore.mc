@@ -54,6 +54,16 @@ class EGYMSafeStore {
         return false;
     }
 
+    static function deleteStorageValue(key as String) as Boolean {
+        try {
+            Storage.deleteValue(key);
+            return true;
+        } catch (e) {
+            _storageWriteErrors += 1;
+        }
+        return false;
+    }
+
     static function resetErrorCounters() as Void {
         _propertyReadErrors = 0;
         _propertyWriteErrors = 0;

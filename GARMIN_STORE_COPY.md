@@ -3,7 +3,7 @@
 Each text block below is intended to stay within Garmin's 4000-character field limit.
 
 ## English Description
-Chars: 2087
+Chars: 2181
 ```text
 Track your EGYM circuit training directly from your wrist.
 
@@ -28,6 +28,7 @@ FEATURES:
 * Automatic target weight calculation based on personal RM values and program intensity.
 * Learned weight calibration: adjusted weights are remembered for each exercise and training method.
 * Quick Start: repeat your last saved setup directly from the start menu.
+* Freeflow replay: save a completed freeflow and repeat that order later from the start menu.
 * Quality rating (%) or watt tracking for Explonic sets.
 * Break timer with rest duration and the upcoming exercise.
 * HR display with color-coded zones based on your Garmin profile.
@@ -56,24 +57,19 @@ GENERAL INFORMATION:
 ```
 
 ## English What's New
-Chars: 789
+Chars: 464
 ```text
-Version 0.6
+Version 0.6.1
 
-* NEW: Quick Start - repeat your last saved setup directly from the start menu.
-* NEW: Learned weight calibration - adjusted target weights are remembered for each exercise and training method.
-* NEW: Reset Calibration - clear learned weight tuning from the start menu.
-* NEW: Individual Mode - pick exercises freely from a sorted list.
-* IMP: Session summary now shows a simple trend vs the last workout.
-* IMP: Better layout scaling across round and rectangular displays.
-* IMP: Break phase now uses a clearer visual color from the adjust phase.
-* IMP: FIT session fields are written more conservatively for better compatibility.
-* FIX: Improved workout flow, input handling, and footer layout spacing.
-* FIX: Multiple stability fixes for save, view, and session handling.
+* NEW: Save + Flow - save a completed freeflow order together with the workout.
+* NEW: Repeat Last Freeflow - launch your last saved freeflow sequence directly from the start menu.
+* IMP: Saved freeflow replays now run as a fixed sequence without reopening the picker after each exercise.
+* IMP: Trend wording is clearer, including explicit "same as last" feedback.
+* FIX: Corrected freeflow save/replay startup flow and start-menu refresh behavior.
 ```
 
 ## German Description
-Chars: 2317
+Chars: 2437
 ```text
 Verfolge dein EGYM Zirkeltraining direkt am Handgelenk.
 
@@ -98,6 +94,7 @@ FUNKTIONEN:
 * Automatische Zielgewichtsberechnung auf Basis deiner RM-Werte und der Programmintensitaet.
 * Gelernte Gewichtskalibrierung: Angepasste Gewichte werden je Uebung und Trainingsmethode gespeichert.
 * Schnellstart: Letztes gespeichertes Setup direkt aus dem Startmenue wiederholen.
+* Freeflow-Wiederholung: Einen abgeschlossenen Freeflow speichern und spaeter direkt aus dem Startmenue erneut starten.
 * Qualitaetsbewertung (%) oder Watt-Tracking fuer Explonic-Saetze.
 * Pausentimer mit Pausendauer und naechster Uebung.
 * HF-Anzeige mit farbigen Zonen auf Basis deines Garmin Profils.
@@ -126,18 +123,13 @@ ALLGEMEINE INFORMATIONEN:
 ```
 
 ## German What's New
-Chars: 913
+Chars: 506
 ```text
-Version 0.6
+Version 0.6.1
 
-* NEU: Schnellstart - das zuletzt gespeicherte Setup direkt aus dem Startmenue wiederholen.
-* NEU: Gelernte Gewichtskalibrierung - angepasste Zielgewichte werden je Uebung und Trainingsmethode gespeichert.
-* NEU: Kalibrierung loeschen - gelernte Gewichtsanpassungen direkt im Startmenue zuruecksetzen.
-* NEU: Individualmodus - Uebungen frei aus einer sortierten Liste waehlen.
-* VERBESSERT: Die Trainingszusammenfassung zeigt jetzt einen einfachen Trend zur letzten Einheit.
-* VERBESSERT: Bessere Layout-Skalierung auf runden und rechteckigen Displays.
-* VERBESSERT: Die Pausenphase nutzt jetzt eine klarere Farbe als die Bewertungsphase.
-* VERBESSERT: FIT-Sitzungsfelder werden vorsichtiger geschrieben fuer bessere Kompatibilitaet.
-* FIX: Verbesserter Trainingsablauf, Eingabeverhalten und Footer-Abstaende.
-* FIX: Mehrere Stabilitaetskorrekturen fuer Speichern, Ansichten und Sitzungsverwaltung.
+* NEU: Speichern + Flow - einen abgeschlossenen Freeflow zusammen mit dem Training speichern.
+* NEU: Letzten Flow starten - den zuletzt gespeicherten Freeflow direkt aus dem Startmenue erneut starten.
+* VERBESSERT: Gespeicherte Freeflow-Ablaeufe laufen jetzt als fester Ablauf ohne Picker nach jeder Uebung.
+* VERBESSERT: Der Trendtext ist klarer, inklusive explizitem Hinweis auf "wie zuletzt".
+* FIX: Freeflow-Speichern/Wiederholen und die Aktualisierung des Startmenues wurden korrigiert.
 ```

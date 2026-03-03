@@ -29,7 +29,7 @@ class EGYMIndividualPickerDelegate extends WatchUi.Menu2InputDelegate {
             view.isWaitingForExercisePick = false;
             WatchUi.popView(WatchUi.SLIDE_DOWN);
             view._individualPickMode = view.IND_PICK_ADD;
-            view.forceEndZirkel();
+            view.openProgramMenu();
             return;
         }
 

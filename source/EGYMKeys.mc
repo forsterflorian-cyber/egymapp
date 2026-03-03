@@ -17,6 +17,7 @@ class EGYMKeys {
     public static const LAST_SETUP_CIRCLE      = "lastSetup_circle";
     public static const LAST_SETUP_TEST        = "lastSetup_test";
     public static const LAST_SESSION_VOLUME    = "lastSessionVolume";
+    public static const LAST_SAVED_FREEFLOW   = "lastSavedFreeflow";
 
     public static const STAT_SESSIONS     = "stat_sessions";
     public static const STAT_TOTAL_VOLUME = "stat_totalVolume";
@@ -29,5 +30,6 @@ class EGYMKeys {
     public static const RM_HISTORY_PREFIX = "rm_hist_";
     public static const LEARNED_FACTOR_PREFIX = "lf_";
     public static const LEARNED_FACTOR_GEN    = "lf_gen";
+    public static const LEARNED_FACTOR_CLEANUP_GEN = "lf_gc_gen";
 }
 

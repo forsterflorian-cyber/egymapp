@@ -5,6 +5,7 @@ class EGYMMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     private const ID_FINISH  = "finish";
     private const ID_DISCARD = "discard";
+    private const ID_SAVE_FLOW = "save_flow";
 
     private var _viewRef as WeakReference;
 
@@ -29,6 +30,12 @@ class EGYMMenuDelegate extends WatchUi.Menu2InputDelegate {
             return;
         }
 
+
+        if (idStr.equals(ID_SAVE_FLOW)) {
+            WatchUi.popView(WatchUi.SLIDE_DOWN);
+            view.forceEndZirkelAndSaveFlow();
+            return;
+        }
         // --- Discard workout ---
         if (idStr.equals(ID_DISCARD)) {
             WatchUi.switchToView(
