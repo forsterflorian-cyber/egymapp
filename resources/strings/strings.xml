@@ -77,6 +77,7 @@
     <string id="UISummaryAvgWatt">Avg Watt</string>
     <string id="UISummaryTopPr">Top PR</string>
     <string id="UISummaryTrend">Trend</string>
+    <string id="UISummaryTrendVsLast">vs last</string>
     <!-- Menu Strings -->
     <string id="UIStartTitleBasis">EGYM Basic</string>
     <string id="UIStartTitlePlus">EGYM+</string>
@@ -96,6 +97,10 @@
     <string id="UIRepeatLastSetup">Quick Start</string>
     <string id="UIRepeatLastSetupSub">Repeat last workout</string>
     <string id="UIRepeatLastSetupEmpty">No saved workout yet</string>
+    <string id="UIResetCalibration">Reset Calibration</string>
+    <string id="UIResetCalibrationSub">Clear learned weight tuning</string>
+    <string id="UIResetCalibrationConfirm">Tap again to confirm</string>
+    <string id="UIResetCalibrationDone">Calibration cleared</string>
     <string id="UIStrengthTestToggle">Strength Test</string>
     <string id="UIVersionLabel">Version</string>
     <string id="UIDiagnostics">Diagnostics</string>

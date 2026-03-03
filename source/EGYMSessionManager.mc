@@ -33,6 +33,7 @@ class EGYMSessionManager {
     private const WATT_RECORDS_SAFE_CHARS = 47;
     private const AVG_PERF_FIELD_COUNT = 12;
     private const METHOD_NAME_FIELD_COUNT = 16;
+    private const WRITE_LIVE_SESSION_SUMMARY = false;
     // Session and FIT field handles
 
     var session as ActivityRecording.Session? = null;
@@ -177,13 +178,28 @@ class EGYMSessionManager {
             nullifyFields();
             return false;
         }
-
         // Write final session-level data safely.
         safeSetField(_totalWeightField, totalKg != null ? totalKg : 0, "session total");
-        safeSetField(_programNameField, fitSafe(progName), "program name");
-        safeSetField(_avgPerformanceField, fitSafeLength(avgPerfStr, AVG_PERF_FIELD_COUNT), "average performance");
-        safeSetField(_methodNameField, fitSafeLength(methodName, METHOD_NAME_FIELD_COUNT), "method name");
-        safeSetField(_wattRecordsField, fitSafeLength(recordsStr, WATT_RECORDS_SAFE_CHARS), "record summary");
+
+        var safeProgramName = fitSafe(progName);
+        if (safeProgramName.length() > 0) {
+            safeSetField(_programNameField, safeProgramName, "program name");
+        }
+
+        var safeAvgPerformance = fitSafeLength(avgPerfStr, AVG_PERF_FIELD_COUNT);
+        if (safeAvgPerformance.length() > 0) {
+            safeSetField(_avgPerformanceField, safeAvgPerformance, "average performance");
+        }
+
+        var safeMethodName = fitSafeLength(methodName, METHOD_NAME_FIELD_COUNT);
+        if (safeMethodName.length() > 0) {
+            safeSetField(_methodNameField, safeMethodName, "method name");
+        }
+
+        var safeRecords = fitSafeLength(recordsStr, WATT_RECORDS_SAFE_CHARS);
+        if (safeRecords.length() > 0) {
+            safeSetField(_wattRecordsField, safeRecords, "record summary");
+        }
 
         try {
             session.stop();
@@ -259,7 +275,7 @@ class EGYMSessionManager {
         if (!isRecording()) {
             return;
         }
-        
+
         try {
             session.addLap();
         } catch (e) {
@@ -269,9 +285,15 @@ class EGYMSessionManager {
 
     //! Updates the session-level watt records field safely.
     function writeRecordsField(recordsStr as String) as Void {
-        if (_wattRecordsField != null && isRecording()) {
-            safeSetField(_wattRecordsField, fitSafeLength(recordsStr, WATT_RECORDS_SAFE_CHARS), "live record summary");
+        if (!WRITE_LIVE_SESSION_SUMMARY || !isRecording() || _wattRecordsField == null) {
+            return;
         }
+
+        if (recordsStr.length() == 0) {
+            return;
+        }
+
+        safeSetField(_wattRecordsField, fitSafeLength(recordsStr, WATT_RECORDS_SAFE_CHARS), "live record summary");
     }
 
     //! Exposes the safe char budget for records summary strings.

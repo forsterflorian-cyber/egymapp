@@ -21,7 +21,8 @@ import Toybox.Time;
 class EGYMView extends WatchUi.View {
 
     // App info
-    var appVersion as String = "v0.5";
+    var appVersion as String = "";
+    var _learnedFactorGeneration as Number = 0;
 
     // Value limits
     const MAX_WEIGHT = 500;
@@ -138,6 +139,7 @@ class EGYMView extends WatchUi.View {
     var _sSummaryAvgWatt as String = "";
     var _sSummaryTopPr as String = "";
     var _sSummaryTrend as String = "";
+    var _sSummaryTrendVsLast as String = "";
 
     // Cached per-phase labels
     var _cachedProgLabel as String = "";
@@ -167,6 +169,16 @@ class EGYMView extends WatchUi.View {
     function initialize() {
         View.initialize();
         drawer = new EGYMViewDrawer();
+
+        var app = Application.getApp();
+        if (app != null && app instanceof EGYMApp) {
+            appVersion = (app as EGYMApp).getAppVersionTag();
+        }
+        refreshLearnedCalibrationGeneration();
+    }
+
+    function refreshLearnedCalibrationGeneration() as Void {
+        _learnedFactorGeneration = EGYMSafeStore.getStorageNumber(EGYMKeys.LEARNED_FACTOR_GEN, 0);
     }
 
     function setTestMode(status as Boolean) as Void {
@@ -265,11 +277,16 @@ class EGYMView extends WatchUi.View {
     }
 
     private function getLearnedFactorKey(exName as String, prog as Dictionary) as String {
-        return EGYMKeys.LEARNED_FACTOR_PREFIX +
+        var key = EGYMKeys.LEARNED_FACTOR_PREFIX +
             cleanExName(exName) + "_" +
             EGYMConfig.getProgramPrefix(prog) + "_" +
             EGYMConfig.getProgramMethodKey(prog) + "_" +
             getBaseFactorBasis(prog).toString();
+
+        if (_learnedFactorGeneration > 0) {
+            key += "_g" + _learnedFactorGeneration.toString();
+        }
+        return key;
     }
 
     private function getActiveFactorBasis(exName as String, prog as Dictionary) as Number {
@@ -1092,6 +1109,7 @@ class EGYMView extends WatchUi.View {
         _sSummaryAvgQuality = WatchUi.loadResource(Rez.Strings.UISummaryAvgQuality);
         _sSummaryAvgWatt = WatchUi.loadResource(Rez.Strings.UISummaryAvgWatt);
         _sSummaryTopPr = WatchUi.loadResource(Rez.Strings.UISummaryTopPr);
+        _sSummaryTrendVsLast = WatchUi.loadResource(Rez.Strings.UISummaryTrendVsLast);
         _sSummaryTrend = WatchUi.loadResource(Rez.Strings.UISummaryTrend);
     }
 
@@ -1439,7 +1457,6 @@ class EGYMView extends WatchUi.View {
         return _sSummaryTopPr + ": " + exDisplayName(bestName) +
             " +" + bestDelta.toString() + bestUnit;
     }
-
     function getSessionSummaryTrendLine() as String {
         if (_previousSessionVolume <= 0 || sessionTotalKg <= 0) {
             return "";
@@ -1453,14 +1470,14 @@ class EGYMView extends WatchUi.View {
             pct = 1;
         }
 
-        var sign = "";
+        var signedPct = pct.toString() + "%";
         if (diff > 0) {
-            sign = "+";
+            signedPct = "+" + signedPct;
         } else if (diff < 0) {
-            sign = "-";
+            signedPct = "-" + signedPct;
         }
 
-        return _sSummaryTrend + ": " + sign + pct.toString() + "%";
+        return _sSummaryTrend + ": " + signedPct + " " + _sSummaryTrendVsLast;
     }
 
     private function logViewIssue(message as String) as Void {

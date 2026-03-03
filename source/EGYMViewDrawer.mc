@@ -6,27 +6,27 @@ import Toybox.Activity;
 import Toybox.UserProfile;
 
 // ============================================================
-// EGYMViewDrawer — All rendering logic for the workout view.
+// EGYMViewDrawer - All rendering logic for the workout view.
 // Reads state from EGYMView but never modifies it.
 // Extracted to keep EGYMView focused on state & logic.
 // ============================================================
 
 class EGYMViewDrawer {
 
-    // ── Layout Caches (reset on session change) ─────────────
+    // Layout caches (reset on session change)
     private var _breakLayoutCached as Boolean = false;
     private var _yTimer as Number = 0;
     private var _yBreakHint as Number = 0;
     private var _yNextLabel as Number = 0;
     private var _yNextName as Number = 0;
 
-    // ── Header String Caches (Prevents GC spikes) ───────────
+    // Header string caches (prevents GC spikes)
     private var _lastTimeRaw as Number = -1;
     private var _cachedTimeStr as String = "00:00";
     private var _lastCals as Number = -1;
     private var _cachedHeaderRest as String = "";
 
-    // ── Polygon Caches (Prevents Array allocations) ─────────
+    // Polygon caches (prevent array allocations)
     private var _boltPoints as Array< [Numeric, Numeric] > = [
         [0,0] as [Numeric, Numeric], [0,0] as [Numeric, Numeric], [0,0] as [Numeric, Numeric], 
         [0,0] as [Numeric, Numeric], [0,0] as [Numeric, Numeric], [0,0] as [Numeric, Numeric], 
@@ -41,7 +41,7 @@ class EGYMViewDrawer {
         [0,0] as [Numeric, Numeric], [0,0] as [Numeric, Numeric], [0,0] as [Numeric, Numeric] 
     ] as Array< [Numeric, Numeric] >;
 
-    // ── HR Zone Cache ───────────────────────────────────────
+    // HR zone cache
     private var _hrZones as Array<Number>? = null;
 
     // ========================================================
@@ -1025,14 +1025,14 @@ class EGYMViewDrawer {
     private function getWorkoutFooterLineGap(h as Number) as Number {
         return getHeightProfileValue(h, [
             8, 8, 9, 10, 11, 12, 12,
-            13, 12, 12, 13, 14, 15
+            13, 12, 14, 16, 17, 18
         ]);
     }
 
     private function getWorkoutFooterHintGap(h as Number) as Number {
         return getHeightProfileValue(h, [
             18, 18, 19, 20, 22, 23, 24,
-            26, 42, 46, 50, 54, 58
+            26, 42, 50, 56, 60, 64
         ]);
     }
 

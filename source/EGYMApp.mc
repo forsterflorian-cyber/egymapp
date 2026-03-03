@@ -29,11 +29,13 @@ class EGYMApp extends Application.AppBase {
     private var _cachedMenuProgramSub as String = "";
     private var _cachedMenuCircleSub as String = "";
     private var _sanityLoggingUnavailable as Boolean = false;
+    private var _pendingCalibrationReset as Boolean = false;
+    private var _calibrationResetCompleted as Boolean = false;
 
     // Storage schema for watch-side persisted data.
     private const CURRENT_STORAGE_SCHEMA_VERSION = 1;
     private const SANITY_LOG_PREFIX = "[EGYM sanity] ";
-    private const APP_VERSION_TAG = "v0.5";
+    private const APP_VERSION_TAG = "v0.6";
 
     // ========================================================
     // LIFECYCLE
@@ -43,15 +45,44 @@ class EGYMApp extends Application.AppBase {
         AppBase.initialize();
     }
 
+    function getAppVersionTag() as String {
+        return APP_VERSION_TAG;
+    }
+
+    function resetLearnedCalibration() as Void {
+        var nextGen = EGYMSafeStore.getStorageNumber(EGYMKeys.LEARNED_FACTOR_GEN, 0) + 1;
+        EGYMSafeStore.setStorageValue(EGYMKeys.LEARNED_FACTOR_GEN, nextGen);
+
+        if (mView != null) {
+            mView.refreshLearnedCalibrationGeneration();
+        }
+    }
+
+    function isCalibrationResetPending() as Boolean {
+        return _pendingCalibrationReset;
+    }
+
+    function beginCalibrationReset() as Void {
+        _pendingCalibrationReset = true;
+        _calibrationResetCompleted = false;
+    }
+
+    function markCalibrationResetDone() as Void {
+        _pendingCalibrationReset = false;
+        _calibrationResetCompleted = true;
+    }
+
+    function clearCalibrationResetState() as Void {
+        _pendingCalibrationReset = false;
+        _calibrationResetCompleted = false;
+    }
+
     //! Called when the app starts; syncs settings from Connect Mobile
     function onStart(state as Dictionary?) as Void {
         EGYMSafeStore.resetErrorCounters();
-        enforceLowMemoryProfileSettings();
         runStorageMigrations();
         syncAndMigrateProperties();
-        if (!isLowMemoryProfile()) {
-            runStartupSanityValidator();
-        }
+        runStartupSanityValidator();
     }
 
     //! Called when the app stops; frees cached resource strings
@@ -294,7 +325,6 @@ class EGYMApp extends Application.AppBase {
             return;
         }
 
-        enforceLowMemoryProfileSettings();
         var zirkelString = EGYMSafeStore.getPropertyString(EGYMKeys.ZIRKEL_ORDER, "");
         if (zirkelString.length() > 0) {
             var parsed = parseZirkelString(zirkelString);
@@ -441,12 +471,7 @@ class EGYMApp extends Application.AppBase {
 
         _cachedMenuProgramSub = WatchUi.loadResource(Rez.Strings.UIProgramEmpty) as String;
         if (programs.size() > 0) {
-            if (isLowMemoryProfile()) {
-                _cachedMenuProgramSub = EGYMConfig.getProgramPrefix(programs[currentIndex]) +
-                    " " + EGYMConfig.getProgramRepsSpec(programs[currentIndex]);
-            } else {
-                _cachedMenuProgramSub = EGYMConfig.getProgramDisplayString(programs[currentIndex]);
-            }
+            _cachedMenuProgramSub = EGYMConfig.getProgramDisplayString(programs[currentIndex]);
         }
 
         _cachedMenuCircleSub = EGYMConfig.getCircleName();
@@ -665,9 +690,6 @@ class EGYMApp extends Application.AppBase {
 
     function createStartMenu() as WatchUi.Menu2 {
         var isPlus = EGYMSafeStore.getPropertyBool(EGYMKeys.IS_EGYM_PLUS, true);
-        if (isLowMemoryProfile()) {
-            isPlus = false;
-        }
 
         var menuTitle = isPlus
             ? WatchUi.loadResource(Rez.Strings.UIStartTitlePlus) as String
@@ -731,51 +753,40 @@ class EGYMApp extends Application.AppBase {
             )
         );
 
-        if (!isLowMemoryProfile()) {
-            startMenu.addItem(
-                new WatchUi.MenuItem(
-                    WatchUi.loadResource(Rez.Strings.UIStats) as String,
-                    WatchUi.loadResource(Rez.Strings.UIStatsSub) as String,
-                    "open_stats",
-                    {}
-                )
-            );
-        }
+        startMenu.addItem(
+            new WatchUi.MenuItem(
+                WatchUi.loadResource(Rez.Strings.UIStats) as String,
+                WatchUi.loadResource(Rez.Strings.UIStatsSub) as String,
+                "open_stats",
+                {}
+            )
+        );
+
+        startMenu.addItem(
+            new WatchUi.MenuItem(
+                WatchUi.loadResource(Rez.Strings.UIResetCalibration) as String,
+                getResetCalibrationSubLabel(),
+                "reset_calibration",
+                {}
+            )
+        );
         return startMenu;
-    }
-
-    function isLowMemoryProfile() as Boolean {
-        try {
-            var settings = System.getDeviceSettings();
-            var maxEdge = settings.screenWidth > settings.screenHeight
-                ? settings.screenWidth
-                : settings.screenHeight;
-            return maxEdge <= 208;
-        } catch (e) {
-            return false;
-        }
-    }
-
-    private function enforceLowMemoryProfileSettings() as Void {
-        if (!isLowMemoryProfile()) {
-            return;
-        }
-
-        if (EGYMSafeStore.getPropertyBool(EGYMKeys.IS_EGYM_PLUS, true)) {
-            EGYMSafeStore.setPropertyValue(EGYMKeys.IS_EGYM_PLUS, false);
-        }
-
-        var activeProgram = EGYMSafeStore.getPropertyNumber(EGYMKeys.ACTIVE_PROGRAM, 0);
-        var basicCount = EGYMConfig.getBasicPrograms().size();
-        if (activeProgram < 0 || activeProgram >= basicCount) {
-            EGYMSafeStore.setPropertyValue(EGYMKeys.ACTIVE_PROGRAM, 0);
-        }
     }
     private function getLastSetupMenuSubLabel() as String {
         if (EGYMSafeStore.getStorageBool(EGYMKeys.LAST_SETUP_EXISTS, false)) {
             return WatchUi.loadResource(Rez.Strings.UIRepeatLastSetupSub) as String;
         }
         return WatchUi.loadResource(Rez.Strings.UIRepeatLastSetupEmpty) as String;
+    }
+
+    private function getResetCalibrationSubLabel() as String {
+        if (_pendingCalibrationReset) {
+            return WatchUi.loadResource(Rez.Strings.UIResetCalibrationConfirm) as String;
+        }
+        if (_calibrationResetCompleted) {
+            return WatchUi.loadResource(Rez.Strings.UIResetCalibrationDone) as String;
+        }
+        return WatchUi.loadResource(Rez.Strings.UIResetCalibrationSub) as String;
     }
     private function formatMenuVersionTag(versionText as String) as String {
         var core = versionText;

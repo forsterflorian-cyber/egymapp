@@ -46,6 +46,11 @@ class EGYMStartMenuDelegate extends WatchUi.Menu2InputDelegate {
         }
         
         var idStr = (id instanceof String) ? (id as String) : id.toString();
+        var app = Application.getApp() as EGYMApp;
+
+        if (!idStr.equals("reset_calibration")) {
+            app.clearCalibrationResetState();
+        }
 
         if (idStr.equals("select_program")) {
             openProgramMenu(item);
@@ -72,16 +77,29 @@ class EGYMStartMenuDelegate extends WatchUi.Menu2InputDelegate {
         }
 
         if (idStr.equals("open_stats")) {
-            var app = Application.getApp() as EGYMApp;
-            if (app.isLowMemoryProfile()) {
-                return;
-            }
-
             var statsView = new EGYMStatsView();
             WatchUi.pushView(
                 statsView,
                 new EGYMStatsDelegate(statsView),
                 WatchUi.SLIDE_UP
+            );
+            return;
+        }
+
+        if (idStr.equals("reset_calibration")) {
+
+            if (app.isCalibrationResetPending()) {
+                app.resetLearnedCalibration();
+                app.markCalibrationResetDone();
+            } else {
+                app.beginCalibrationReset();
+            }
+
+            var freshMenu = app.createStartMenu();
+            WatchUi.switchToView(
+                freshMenu,
+                new EGYMStartMenuDelegate(),
+                WatchUi.SLIDE_IMMEDIATE
             );
             return;
         }

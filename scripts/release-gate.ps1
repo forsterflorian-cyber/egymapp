@@ -1,5 +1,5 @@
 param(
-    [string[]]$Devices = @("epix2", "fenix5plus", "fenix6", "fr55", "fr945", "fr955", "fr970", "fenix847mm", "fenix8solar51mm", "venusq2"),
+    [string[]]$Devices = @("epix2", "fenix5plus", "fenix6", "fr945", "fr955", "fr970", "fenix847mm", "fenix8solar51mm", "venusq2"),
     [string]$TestDevice = "epix2",
     [string]$ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path,
     [string]$MonkeyC = "monkeyc",

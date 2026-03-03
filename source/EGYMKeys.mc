@@ -28,5 +28,6 @@ class EGYMKeys {
     public static const WATT_PREFIX       = "watt_";
     public static const RM_HISTORY_PREFIX = "rm_hist_";
     public static const LEARNED_FACTOR_PREFIX = "lf_";
+    public static const LEARNED_FACTOR_GEN    = "lf_gen";
 }
 

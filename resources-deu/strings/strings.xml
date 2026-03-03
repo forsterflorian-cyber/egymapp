@@ -78,6 +78,7 @@
     <string id="UISummaryAvgWatt">Schnitt Watt</string>
     <string id="UISummaryTopPr">Bestes PR</string>
     <string id="UISummaryTrend">Trend</string>
+    <string id="UISummaryTrendVsLast">vs. zuletzt</string>
     <!-- Menu Strings -->
     <string id="UIStartTitleBasis">EGYM Basis</string>
     <string id="UIStartTitlePlus">EGYM+</string>
@@ -91,6 +92,10 @@
     <string id="UIRepeatLastSetup">Schnellstart</string>
     <string id="UIRepeatLastSetupSub">Letztes Training wiederholen</string>
     <string id="UIRepeatLastSetupEmpty">Noch kein Setup gespeichert</string>
+    <string id="UIResetCalibration">Kalibrierung loeschen</string>
+    <string id="UIResetCalibrationSub">Gelernte Anpassung loeschen</string>
+    <string id="UIResetCalibrationConfirm">Nochmals tippen zum Loeschen</string>
+    <string id="UIResetCalibrationDone">Kalibrierung geloescht</string>
     <string id="UICustomCircuit">Eigener Zirkel</string>
     <string id="UICustomCircuitSub">Aus Einstellungen</string>
     <string id="UIStrength">Oberkoerper</string>
