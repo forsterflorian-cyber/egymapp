@@ -62,6 +62,8 @@
             <iq:product id="fr970"/>
             <iq:product id="instinct3amoled45mm"/>
             <iq:product id="instinct3amoled50mm"/>
+            <iq:product id="instinct3solar45mm"/>
+            <iq:product id="marq2"/>
             <iq:product id="venu2"/>
             <iq:product id="venu2plus"/>
             <iq:product id="venu2s"/>
@@ -103,6 +105,3 @@
         <iq:barrels/>
     </iq:application>
 </iq:manifest>
-
-
-
