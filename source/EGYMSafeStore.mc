@@ -209,6 +209,19 @@ class EGYMSafeStore {
         return out.size() > 0 ? StringUtil.charArrayToString(out) : "";
     }
 
+    //! Trims leading and trailing ASCII space (0x20) and tab (0x09) characters.
+    //! Accepts nullable input and returns "" for null or empty strings.
+    static function trimWhitespace(str as String?) as String {
+        if (str == null || str.length() == 0) { return ""; }
+        var chars = str.toCharArray();
+        var s = 0;
+        var e = chars.size() - 1;
+        while (s <= e && (chars[s] == 0x20 || chars[s] == 0x09)) { s++; }
+        while (e >= s && (chars[e] == 0x20 || chars[e] == 0x09)) { e--; }
+        if (s > e) { return ""; }
+        return str.substring(s, e + 1);
+    }
+
     //! Lexicographic string comparison without using String.compareTo(),
     //! which is unavailable on some older Garmin devices (e.g. fenix 5).
     //! Returns -1 if str1 < str2, 1 if str1 > str2, 0 if equal.

@@ -12,6 +12,11 @@ import Toybox.StringUtil;
 
 class EGYMConfig {
 
+    // Learned calibration scaling — shared with EGYMApp and EGYMView.
+    static const LEARNED_FACTOR_SCALE = 1000;
+    static const MIN_LEARNED_FACTOR   = 200;
+    static const MAX_LEARNED_FACTOR   = 1200;
+
     // Lazy caches (populated on first access)
     private static var _allProgramsCache as Array<Dictionary>? = null;
     private static var _basicProgramsCache as Array<Dictionary>? = null;

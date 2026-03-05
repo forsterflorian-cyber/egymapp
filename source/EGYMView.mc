@@ -29,10 +29,6 @@ class EGYMView extends WatchUi.View {
     const MAX_WATT = 9999;
     const MIN_QUALITY = 0;
     const MAX_QUALITY = 100;
-    const LEARNED_FACTOR_SCALE = 1000;
-    const MIN_LEARNED_FACTOR = 200;
-    const MAX_LEARNED_FACTOR = 1200;
-
     // Fallback program (prevents crashes when data is missing)
     const FALLBACK_PROG as Dictionary = {
         :p => "??", :g => "GoalUnknown",
@@ -265,7 +261,7 @@ class EGYMView extends WatchUi.View {
         if (factorBasis <= 0) {
             return 0;
         }
-        return Math.round((rm * factorBasis) / (LEARNED_FACTOR_SCALE * 1.0)).toNumber();
+        return Math.round((rm * factorBasis) / (EGYMConfig.LEARNED_FACTOR_SCALE * 1.0)).toNumber();
     }
 
     private function getBaseFactorBasis(prog as Dictionary) as Number {
@@ -274,7 +270,7 @@ class EGYMView extends WatchUi.View {
             return 0;
         }
         return clampLearnedFactor(
-            Math.round(factor * (LEARNED_FACTOR_SCALE * 1.0)).toNumber()
+            Math.round(factor * (EGYMConfig.LEARNED_FACTOR_SCALE * 1.0)).toNumber()
         );
     }
 
@@ -300,11 +296,11 @@ class EGYMView extends WatchUi.View {
     }
 
     private function clampLearnedFactor(factorBasis as Number) as Number {
-        if (factorBasis < MIN_LEARNED_FACTOR) {
-            return MIN_LEARNED_FACTOR;
+        if (factorBasis < EGYMConfig.MIN_LEARNED_FACTOR) {
+            return EGYMConfig.MIN_LEARNED_FACTOR;
         }
-        if (factorBasis > MAX_LEARNED_FACTOR) {
-            return MAX_LEARNED_FACTOR;
+        if (factorBasis > EGYMConfig.MAX_LEARNED_FACTOR) {
+            return EGYMConfig.MAX_LEARNED_FACTOR;
         }
         return factorBasis;
     }
@@ -325,7 +321,7 @@ class EGYMView extends WatchUi.View {
         }
 
         var observedBasis = Math.round(
-            (currentWeight * (LEARNED_FACTOR_SCALE * 1.0)) / rm
+            (currentWeight * (EGYMConfig.LEARNED_FACTOR_SCALE * 1.0)) / rm
         ).toNumber();
         observedBasis = clampLearnedFactor(observedBasis);
 
@@ -841,34 +837,16 @@ class EGYMView extends WatchUi.View {
         return total;
     }
 
-    function trimAsciiWhitespace(str as String?) as String {
-        if (str == null || str.length() == 0) { return ""; }
-
-        var chars = str.toCharArray();
-        var start = 0;
-        var endPos = chars.size() - 1;
-
-        while (start <= endPos && (chars[start] == 0x20 || chars[start] == 0x09)) {
-            start++;
-        }
-        while (endPos >= start && (chars[endPos] == 0x20 || chars[endPos] == 0x09)) {
-            endPos--;
-        }
-
-        if (start > endPos) { return ""; }
-        return str.substring(start, endPos + 1);
-    }
-
     function parseTerm(term as String?) as Number {
-        var trimmed = trimAsciiWhitespace(term);
+        var trimmed = EGYMSafeStore.trimWhitespace(term);
         if (trimmed.length() == 0) { return 0; }
 
         var mulPos = trimmed.find("*");
         if (mulPos == null) { mulPos = trimmed.find("x"); }
         if (mulPos == null) { mulPos = trimmed.find("X"); }
         if (mulPos != null) {
-            var leftStr = trimAsciiWhitespace(trimmed.substring(0, mulPos));
-            var rightStr = trimAsciiWhitespace(trimmed.substring(mulPos + 1, trimmed.length()));
+            var leftStr = EGYMSafeStore.trimWhitespace(trimmed.substring(0, mulPos));
+            var rightStr = EGYMSafeStore.trimWhitespace(trimmed.substring(mulPos + 1, trimmed.length()));
             var left = leftStr.toNumber();
             var right = rightStr.toNumber();
             if (left != null && right != null) { return left * right; }

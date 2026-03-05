@@ -11,7 +11,6 @@ import Toybox.WatchUi;
 // [] EGYMApp.mc        -> add to getExName() mapping
 // [] properties.xml    -> add rm_ and watt_ properties
 // [] settings XML      -> add Connect Mobile settings (optional)
-// [] EGYMView.mc       -> add to getKnownExercises() rawNames
 // ============================================================
 
 class EGYMApp extends Application.AppBase {
@@ -37,10 +36,6 @@ class EGYMApp extends Application.AppBase {
     private const CURRENT_STORAGE_SCHEMA_VERSION = 1;
     private const SANITY_LOG_PREFIX = "[EGYM sanity] ";
     private const APP_VERSION_TAG = "v0.6.1";
-    private const LEARNED_FACTOR_SCALE = 1000;
-    private const MIN_LEARNED_FACTOR = 200;
-    private const MAX_LEARNED_FACTOR = 1200;
-
     // ========================================================
     // LIFECYCLE
     // ========================================================
@@ -151,12 +146,12 @@ class EGYMApp extends Application.AppBase {
             return 0;
         }
 
-        var basis = Math.round(factor * (LEARNED_FACTOR_SCALE * 1.0)).toNumber();
-        if (basis < MIN_LEARNED_FACTOR) {
-            return MIN_LEARNED_FACTOR;
+        var basis = Math.round(factor * (EGYMConfig.LEARNED_FACTOR_SCALE * 1.0)).toNumber();
+        if (basis < EGYMConfig.MIN_LEARNED_FACTOR) {
+            return EGYMConfig.MIN_LEARNED_FACTOR;
         }
-        if (basis > MAX_LEARNED_FACTOR) {
-            return MAX_LEARNED_FACTOR;
+        if (basis > EGYMConfig.MAX_LEARNED_FACTOR) {
+            return EGYMConfig.MAX_LEARNED_FACTOR;
         }
         return basis;
     }
@@ -286,15 +281,11 @@ class EGYMApp extends Application.AppBase {
         if (input == null) {
             return null;
         }
-        var key = normalizeLookupKey(trimString(input).toLower());
+        var key = EGYMSafeStore.applyUmlautSubstitution(EGYMSafeStore.trimWhitespace(input).toLower());
         if (key.length() == 0) {
             return null;
         }
         return resolveExerciseAliasKey(key);
-    }
-
-    private function normalizeLookupKey(str as String) as String {
-        return EGYMSafeStore.applyUmlautSubstitution(str);
     }
 
     private function initExerciseAliasMap() as Void {
@@ -413,7 +404,7 @@ class EGYMApp extends Application.AppBase {
         var commaIndex = remainingStr.find(",");
 
         while (commaIndex != null) {
-            var item = trimString(remainingStr.substring(0, commaIndex));
+            var item = EGYMSafeStore.trimWhitespace(remainingStr.substring(0, commaIndex));
             if (item.length() > 0) {
                 var resolved = resolveExerciseName(item);
                 arr.add(resolved != null ? resolved : item);
@@ -425,32 +416,13 @@ class EGYMApp extends Application.AppBase {
         }
 
         // Handle the final token
-        var finalItem = trimString(remainingStr);
+        var finalItem = EGYMSafeStore.trimWhitespace(remainingStr);
         if (finalItem.length() > 0) {
             var resolved = resolveExerciseName(finalItem);
             arr.add(resolved != null ? resolved : finalItem);
         }
 
         return arr;
-    }
-
-    function trimString(str as String) as String {
-        var s = 0;
-        var e = str.length() - 1;
-        if (e < 0) {
-            return "";
-        }
-        var chars = str.toCharArray();
-        while (s <= e && (chars[s] == 0x20 || chars[s] == 0x09)) {
-            s++;
-        }
-        while (e >= s && (chars[e] == 0x20 || chars[e] == 0x09)) {
-            e--;
-        }
-        if (s > e) {
-            return "";
-        }
-        return str.substring(s, e + 1);
     }
 
     // ========================================================
