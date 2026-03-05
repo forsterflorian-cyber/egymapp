@@ -13,6 +13,20 @@ import Toybox.UserProfile;
 
 class EGYMViewDrawer {
 
+    // Color palette
+    private const CLR_ACCENT    = CLR_ACCENT; // orange — headings, highlights
+    private const CLR_POSITIVE  = CLR_POSITIVE; // green  — PRs, good values
+    private const CLR_HIGHLIGHT = CLR_HIGHLIGHT; // blue   — exercise names, selection
+    private const CLR_SECONDARY = CLR_SECONDARY; // light grey — labels, units
+    private const CLR_DIM       = CLR_DIM; // dark grey  — muted / scroll arrows
+    private const CLR_MID       = CLR_MID; // medium grey
+    private const CLR_DARK      = CLR_DARK; // very dark  — bar backgrounds
+    private const CLR_WARN      = CLR_WARN; // orange-red — save-failed, HR z4
+    private const CLR_ERROR     = CLR_ERROR; // dark red   — discard
+    private const CLR_DANGER    = CLR_DANGER; // red        — HR z5
+    private const CLR_CAUTION   = CLR_CAUTION; // yellow     — HR z3
+    private const CLR_OK        = CLR_OK; // dark green — confirmed action
+
     // Layout caches (reset on session change)
     private var _breakLayoutCached as Boolean = false;
     private var _yTimer as Number = 0;
@@ -112,13 +126,13 @@ class EGYMViewDrawer {
         view as EGYMView
     ) as Void {
         var title = view.isShowingSaveFailed ? view._sSaveFailed : view._sDiscarded;
-        dc.setColor(view.isShowingSaveFailed ? 0xff5500 : 0xaa0000, -1);
+        dc.setColor(view.isShowingSaveFailed ? CLR_WARN : CLR_ERROR, -1);
         dc.drawText(
             w / 2, h * 0.35, Graphics.FONT_MEDIUM,
             title, Graphics.TEXT_JUSTIFY_CENTER
         );
 
-        dc.setColor(0x555555, -1);
+        dc.setColor(CLR_DIM, -1);
         dc.drawText(
             w / 2, h * 0.55, Graphics.FONT_XTINY,
             view._sBackSave, Graphics.TEXT_JUSTIFY_CENTER
@@ -131,7 +145,7 @@ class EGYMViewDrawer {
         h as Number,
         view as EGYMView
     ) as Void {
-        dc.setColor(0x00ff00, -1);
+        dc.setColor(CLR_POSITIVE, -1);
         dc.drawText(
             w / 2, h * 0.2, Graphics.FONT_SMALL,
             view._sCircuitComplete, Graphics.TEXT_JUSTIFY_CENTER
@@ -144,7 +158,7 @@ class EGYMViewDrawer {
             Graphics.TEXT_JUSTIFY_CENTER
         );
 
-        dc.setColor(0xffaa00, -1);
+        dc.setColor(CLR_ACCENT, -1);
         dc.drawText(
             w / 2, h * 0.4, Graphics.FONT_SMALL,
             view.finalCalories.toString() + " kcal",
@@ -160,14 +174,14 @@ class EGYMViewDrawer {
         if (view.sessionRecords.size() > 0) {
             drawRecordsList(dc, w, h, view, recordsStartY);
         } else {
-            dc.setColor(0x555555, -1);
+            dc.setColor(CLR_DIM, -1);
             dc.drawText(
                 w / 2, recordsStartY, Graphics.FONT_XTINY,
                 view._sNoRecords, Graphics.TEXT_JUSTIFY_CENTER
             );
         }
 
-        dc.setColor(0x555555, -1);
+        dc.setColor(CLR_DIM, -1);
         dc.drawText(
             w / 2, h * 0.9, Graphics.FONT_XTINY,
             view._sBackSave, Graphics.TEXT_JUSTIFY_CENTER
@@ -190,7 +204,7 @@ class EGYMViewDrawer {
             Graphics.FONT_XTINY,
             maxWidth
         );
-        dc.setColor(0xaaaaaa, -1);
+        dc.setColor(CLR_SECONDARY, -1);
         dc.drawText(
             w / 2, lineY, Graphics.FONT_XTINY,
             primary, Graphics.TEXT_JUSTIFY_CENTER
@@ -209,7 +223,7 @@ class EGYMViewDrawer {
         var trend = view.getSessionSummaryTrendLine();
         if (trend.length() > 0) {
             lineY += getSuccessSummaryLineGap(h);
-            dc.setColor(0x00aaff, -1);
+            dc.setColor(CLR_HIGHLIGHT, -1);
             dc.drawText(
                 w / 2, lineY, Graphics.FONT_XTINY,
                 fitTextToWidth(dc, trend, Graphics.FONT_XTINY, maxWidth),
@@ -258,7 +272,7 @@ class EGYMViewDrawer {
             var unit = (rec[:t] as String).equals("W") ? " W" : " kg";
             var deltaStr = rec[:d] != null ? rec[:d].toString() : "0";
 
-            dc.setColor(0xaaaaaa, -1);
+            dc.setColor(CLR_SECONDARY, -1);
             dc.drawText(
                 w / 2 - splitOffset, startY, Graphics.FONT_XTINY,
                 name, Graphics.TEXT_JUSTIFY_RIGHT
@@ -266,7 +280,7 @@ class EGYMViewDrawer {
 
             drawBolt(dc, w / 2 - getRecordBoltXOffset(w), startY + getRecordBoltYOffset(h), h);
 
-            dc.setColor(0x00ff00, -1);
+            dc.setColor(CLR_POSITIVE, -1);
             dc.drawText(
                 w / 2 + splitOffset, startY, Graphics.FONT_XTINY,
                 "+" + deltaStr + unit,
@@ -299,7 +313,7 @@ class EGYMViewDrawer {
         _boltPoints[5][0] = bx + 1;      _boltPoints[5][1] = by + (boltH * 4) / 10;
         _boltPoints[6][0] = bx + 2;      _boltPoints[6][1] = by;
 
-        dc.setColor(0xffff00, -1);
+        dc.setColor(CLR_CAUTION, -1);
         dc.fillPolygon(_boltPoints);
     }
 
@@ -326,7 +340,7 @@ class EGYMViewDrawer {
         _downTriPoints[1][0] = cx + triSize; _downTriPoints[1][1] = iy + gap;
         _downTriPoints[2][0] = cx;           _downTriPoints[2][1] = iy + gap + triSize;
 
-        dc.setColor(0x555555, -1);
+        dc.setColor(CLR_DIM, -1);
         dc.fillPolygon(_upTriPoints);
         dc.fillPolygon(_downTriPoints);
     }
@@ -378,7 +392,7 @@ class EGYMViewDrawer {
             getSafeContentWidth(w)
         );
 
-        dc.setColor(0xffffff, -1);
+        dc.setColor(Graphics.COLOR_WHITE, -1);
         dc.drawText(
             w / 2, getProgramSummaryY(h), Graphics.FONT_XTINY,
             summaryText,
@@ -456,7 +470,7 @@ class EGYMViewDrawer {
             hrText, Graphics.TEXT_JUSTIFY_LEFT
         );
         
-        dc.setColor(0xaaaaaa, -1);
+        dc.setColor(CLR_SECONDARY, -1);
         dc.drawText(
             startX + hrW, h * 0.1, Graphics.FONT_XTINY,
             restText, Graphics.TEXT_JUSTIFY_LEFT
@@ -483,9 +497,9 @@ class EGYMViewDrawer {
         var progress = (completed * barW) / total;
         var barY = getWorkoutProgressBarY(h);
 
-        dc.setColor(0x333333, -1);
+        dc.setColor(CLR_DARK, -1);
         dc.fillRectangle((w - barW) / 2, barY, barW, getProgressBarHeight(h));
-        dc.setColor(0xffaa00, -1);
+        dc.setColor(CLR_ACCENT, -1);
         dc.fillRectangle((w - barW) / 2, barY, progress, getProgressBarHeight(h));
     }
 
@@ -502,7 +516,7 @@ class EGYMViewDrawer {
         var infoY = getMetricInfoY(dh);
         var labelY = getMetricLabelY(dh);
 
-        dc.setColor(0xaaaaaa, -1);
+        dc.setColor(CLR_SECONDARY, -1);
         dc.drawText(
             w / 2, infoY, Graphics.FONT_XTINY,
             view._cachedExInfo, Graphics.TEXT_JUSTIFY_CENTER
@@ -510,7 +524,7 @@ class EGYMViewDrawer {
 
         var exLabel = fitTextToWidth(dc, view._cachedExLabel, Graphics.FONT_XTINY, getSafeContentWidth(w));
 
-        dc.setColor(0x00ff00, -1);
+        dc.setColor(CLR_POSITIVE, -1);
         dc.drawText(
             w / 2, labelY, Graphics.FONT_XTINY,
             exLabel, Graphics.TEXT_JUSTIFY_CENTER
@@ -530,7 +544,7 @@ class EGYMViewDrawer {
         dh as Number,
         weight as Number
     ) as Void {
-        dc.setColor(0xffffff, -1);
+        dc.setColor(Graphics.COLOR_WHITE, -1);
         var valueFont = getWeightValueFont(dh);
         var weightWidth = dc.getTextWidthInPixels(weight.toString(), valueFont);
         var kgWidth = dc.getTextWidthInPixels("kg", Graphics.FONT_MEDIUM);
@@ -544,7 +558,7 @@ class EGYMViewDrawer {
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER
         );
 
-        dc.setColor(0xaaaaaa, -1);
+        dc.setColor(CLR_SECONDARY, -1);
         dc.drawText(
             startX + weightWidth + gap, centerY, Graphics.FONT_MEDIUM,
             "kg",
@@ -570,18 +584,18 @@ class EGYMViewDrawer {
                 getSafeContentWidth(w)
             );
 
-            dc.setColor(0x00aaff, -1);
+            dc.setColor(CLR_HIGHLIGHT, -1);
             dc.drawText(
                 w / 2, labelY, Graphics.FONT_XTINY,
                 view._sNext, Graphics.TEXT_JUSTIFY_CENTER
             );
-            dc.setColor(0xffffff, -1);
+            dc.setColor(Graphics.COLOR_WHITE, -1);
             dc.drawText(
                 w / 2, nameY, nameFont,
                 nextName, Graphics.TEXT_JUSTIFY_CENTER
             );
         } else if (!view.isIndividualMode) {
-            dc.setColor(0xaaaaaa, -1);
+            dc.setColor(CLR_SECONDARY, -1);
             dc.drawText(
                 w / 2, labelY, Graphics.FONT_XTINY,
                 view._sLastExercise, Graphics.TEXT_JUSTIFY_CENTER
@@ -603,7 +617,7 @@ class EGYMViewDrawer {
         var infoY = getMetricInfoY(dh);
         var labelY = getMetricLabelY(dh);
 
-        dc.setColor(0xffaa00, -1);
+        dc.setColor(CLR_ACCENT, -1);
         dc.drawText(
             w / 2, infoY, Graphics.FONT_XTINY,
             isExp ? view._sRateWatt : view._sRateQuality,
@@ -628,14 +642,14 @@ class EGYMViewDrawer {
         var gap = getMetricUnitGap(dh);
         var startX = (w - (numW + gap + suffW)) / 2;
 
-        dc.setColor(0xffaa00, -1);
+        dc.setColor(CLR_ACCENT, -1);
         dc.drawText(
             startX, centerY, valueFont,
             numStr,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER
         );
 
-        dc.setColor(0xaaaaaa, -1);
+        dc.setColor(CLR_SECONDARY, -1);
         dc.drawText(
             startX + numW + gap, centerY, Graphics.FONT_MEDIUM,
             suffix,
@@ -668,7 +682,7 @@ class EGYMViewDrawer {
 
         var elapsed = (System.getTimer() - view.breakStartTime) / 1000;
 
-        dc.setColor(0x00aaff, -1);
+        dc.setColor(CLR_HIGHLIGHT, -1);
         dc.drawText(
             w / 2, titleY, Graphics.FONT_XTINY,
             view._sBreak, Graphics.TEXT_JUSTIFY_CENTER
@@ -677,7 +691,7 @@ class EGYMViewDrawer {
         var breakHint = view.isIndividualMode
             ? (isCompactLayout(dh) ? view._sBreakPickCompact : view._sBreakPickHint)
             : (isCompactLayout(dh) ? view._sBreakContinueCompact : view._sBreakContinueHint);
-        dc.setColor(0x00aaff, -1);
+        dc.setColor(CLR_HIGHLIGHT, -1);
         dc.drawText(
             w / 2, _yTimer, Graphics.FONT_NUMBER_HOT,
             elapsed.toString(),
@@ -696,7 +710,7 @@ class EGYMViewDrawer {
                 nextFont,
                 getSafeContentWidth(w)
             );
-            dc.setColor(0x00aaff, -1);
+            dc.setColor(CLR_HIGHLIGHT, -1);
             dc.drawText(
                 w / 2, _yNextLabel, Graphics.FONT_XTINY,
                 view._sNext, Graphics.TEXT_JUSTIFY_CENTER
@@ -708,7 +722,7 @@ class EGYMViewDrawer {
                 nextName, Graphics.TEXT_JUSTIFY_CENTER
             );
         } else if (!view.isIndividualMode) {
-            dc.setColor(0xaaaaaa, -1);
+            dc.setColor(CLR_SECONDARY, -1);
             dc.drawText(
                 w / 2, _yNextLabel, Graphics.FONT_XTINY,
                 view._sLastExercise, Graphics.TEXT_JUSTIFY_CENTER
@@ -726,7 +740,7 @@ class EGYMViewDrawer {
             return;
         }
 
-        dc.setColor(0x777777, -1);
+        dc.setColor(CLR_MID, -1);
         dc.drawText(
             w / 2, y, Graphics.FONT_XTINY,
             text, Graphics.TEXT_JUSTIFY_CENTER
@@ -769,7 +783,7 @@ class EGYMViewDrawer {
             line2Y = line1Y + lineGap;
         }
 
-        dc.setColor(0x555555, -1);
+        dc.setColor(CLR_DIM, -1);
         dc.drawText(
             w / 2, line1Y, Graphics.FONT_XTINY,
             line1, Graphics.TEXT_JUSTIFY_CENTER
@@ -1200,7 +1214,7 @@ class EGYMViewDrawer {
             }
         }
 
-        dc.setColor(0x777777, -1);
+        dc.setColor(CLR_MID, -1);
         dc.drawText(
             isLeft ? safeInset : w - safeInset,
             y,
@@ -1294,13 +1308,13 @@ class EGYMViewDrawer {
         h as Number,
         view as EGYMView
     ) as Void {
-        dc.setColor(0x00ff00, -1);
+        dc.setColor(CLR_POSITIVE, -1);
         dc.drawText(
             w / 2, h * 0.2, Graphics.FONT_SMALL,
             view._sRoundComplete, Graphics.TEXT_JUSTIFY_CENTER
         );
 
-        dc.setColor(0xffffff, -1);
+        dc.setColor(Graphics.COLOR_WHITE, -1);
         dc.drawText(
             w / 2, h / 2, Graphics.FONT_SMALL,
             view._sAnotherRound, Graphics.TEXT_JUSTIFY_CENTER
@@ -1319,7 +1333,7 @@ class EGYMViewDrawer {
         }
 
         var nr = view._noBtnRect as Array<Number>;
-        dc.setColor(0xaa0000, -1);
+        dc.setColor(CLR_ERROR, -1);
         dc.fillRoundedRectangle(nr[0], nr[1], nr[2], nr[3], getDecisionButtonRadius(w));
         dc.setColor(Graphics.COLOR_WHITE, -1);
         dc.drawText(
@@ -1329,7 +1343,7 @@ class EGYMViewDrawer {
         );
 
         var yr = view._yesBtnRect as Array<Number>;
-        dc.setColor(0x00aa00, -1);
+        dc.setColor(CLR_OK, -1);
         dc.fillRoundedRectangle(yr[0], yr[1], yr[2], yr[3], getDecisionButtonRadius(w));
         dc.setColor(Graphics.COLOR_WHITE, -1);
         dc.drawText(
@@ -1363,25 +1377,25 @@ class EGYMViewDrawer {
 
     function getHRZoneColor(hr as Number) as Number {
         if (hr <= 0) {
-            return 0xaaaaaa;
+            return CLR_SECONDARY;
         }
 
         var zones = getHRZones();
         if (zones != null) {
-            if (hr >= zones[4]) { return 0xff0000; }  
-            if (hr >= zones[3]) { return 0xff5500; }  
-            if (hr >= zones[2]) { return 0xffaa00; }  
-            if (hr >= zones[1]) { return 0xffff00; }  
-            if (hr >= zones[0]) { return 0x00ff00; }  
-            return 0x00aaff;                           
+            if (hr >= zones[4]) { return CLR_DANGER; }  
+            if (hr >= zones[3]) { return CLR_WARN; }  
+            if (hr >= zones[2]) { return CLR_ACCENT; }  
+            if (hr >= zones[1]) { return CLR_CAUTION; }  
+            if (hr >= zones[0]) { return CLR_POSITIVE; }  
+            return CLR_HIGHLIGHT;                           
         }
 
-        if (hr < 100) { return 0x00aaff; }
-        if (hr < 120) { return 0x00ff00; }
-        if (hr < 140) { return 0xffff00; }
-        if (hr < 160) { return 0xffaa00; }
-        if (hr < 180) { return 0xff5500; }
-        return 0xff0000;
+        if (hr < 100) { return CLR_HIGHLIGHT; }
+        if (hr < 120) { return CLR_POSITIVE; }
+        if (hr < 140) { return CLR_CAUTION; }
+        if (hr < 160) { return CLR_ACCENT; }
+        if (hr < 180) { return CLR_WARN; }
+        return CLR_DANGER;
     }
 }
 

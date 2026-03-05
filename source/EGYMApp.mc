@@ -2,7 +2,6 @@ import Toybox.Application;
 import Toybox.Lang;
 import Toybox.Math;
 import Toybox.System;
-import Toybox.StringUtil;
 import Toybox.WatchUi;
 
 // ============================================================
@@ -26,6 +25,7 @@ class EGYMApp extends Application.AppBase {
     private var _resolvedExNames as Dictionary<String, String>?;
     private var _resolvedGoalNames as Dictionary<String, String>?;
     private var _resolvedMethodNames as Dictionary<String, String>?;
+    private var _exerciseAliasMap as Dictionary<String, String>?;
     private var _cachedStorageSchema as Number = 0;
     private var _cachedMenuProgramSub as String = "";
     private var _cachedMenuCircleSub as String = "";
@@ -294,92 +294,62 @@ class EGYMApp extends Application.AppBase {
     }
 
     private function normalizeLookupKey(str as String) as String {
-        var chars = str.toCharArray();
-        var normalized = [] as Array<Char>;
+        return EGYMSafeStore.applyUmlautSubstitution(str);
+    }
 
-        for (var i = 0; i < chars.size(); i++) {
-            var c = chars[i];
-            if (c == 0x00FC || c == 0x00DC) {
-                normalized.add('u');
-                normalized.add('e');
-            } else if (c == 0x00F6 || c == 0x00D6) {
-                normalized.add('o');
-                normalized.add('e');
-            } else if (c == 0x00E4 || c == 0x00C4) {
-                normalized.add('a');
-                normalized.add('e');
-            } else if (c == 0x00DF) {
-                normalized.add('s');
-                normalized.add('s');
-            } else {
-                normalized.add(c);
-            }
+    private function initExerciseAliasMap() as Void {
+        if (_exerciseAliasMap != null) {
+            return;
         }
-
-        return normalized.size() > 0 ? StringUtil.charArrayToString(normalized) : "";
+        _exerciseAliasMap = {
+            "chest press"       => "Brustpresse",
+            "brustpresse"       => "Brustpresse",
+            "ab trainer"        => "Bauchtrainer",
+            "bauchtrainer"      => "Bauchtrainer",
+            "seated row"        => "Ruderzug",
+            "ruderzug"          => "Ruderzug",
+            "rudern"            => "Ruderzug",
+            "oblique"           => "Seitlicher Bauch",
+            "seitlicher bauch"  => "Seitlicher Bauch",
+            "leg press"         => "Beinpresse",
+            "beinpresse"        => "Beinpresse",
+            "lat pulldown"      => "Latzug",
+            "latzug"            => "Latzug",
+            "lat ziehen"        => "Latzug",
+            "butterfly"         => "Butterfly",
+            "back extension"    => "Rueckentrainer",
+            "rueckentrainer"    => "Rueckentrainer",
+            "reverse fly"       => "Reverse Butterfly",
+            "reverse butterfly" => "Reverse Butterfly",
+            "shoulder press"    => "Schulterpresse",
+            "schulterpresse"    => "Schulterpresse",
+            "squat"             => "Squat",
+            "leg extension"     => "Beinstrecker",
+            "beinstrecker"      => "Beinstrecker",
+            "leg curl"          => "Beinbeuger",
+            "beinbeuger"        => "Beinbeuger",
+            "abductor"          => "Abduktor",
+            "abduktor"          => "Abduktor",
+            "adductor"          => "Adduktor",
+            "adduktor"          => "Adduktor",
+            "hip thrust"        => "Hip Thrust",
+            "bicep curl"        => "Bizepscurl",
+            "bizepscurl"        => "Bizepscurl",
+            "tricep press"      => "Trizepspresse",
+            "trizepspresse"     => "Trizepspresse",
+            "glute"             => "Glutaeus",
+            "glutaeus"          => "Glutaeus",
+            "calf raise"        => "Wadentrainer",
+            "calves"            => "Wadentrainer",
+            "wadentrainer"      => "Wadentrainer",
+            "waden"             => "Wadentrainer"
+        } as Dictionary<String, String>;
     }
 
     private function resolveExerciseAliasKey(key as String) as String? {
-        if (key.equals("chest press") || key.equals("brustpresse")) {
-            return "Brustpresse";
-        }
-        if (key.equals("ab trainer") || key.equals("bauchtrainer")) {
-            return "Bauchtrainer";
-        }
-        if (key.equals("seated row") || key.equals("ruderzug") || key.equals("rudern")) {
-            return "Ruderzug";
-        }
-        if (key.equals("oblique") || key.equals("seitlicher bauch")) {
-            return "Seitlicher Bauch";
-        }
-        if (key.equals("leg press") || key.equals("beinpresse")) {
-            return "Beinpresse";
-        }
-        if (key.equals("lat pulldown") || key.equals("latzug") || key.equals("lat ziehen")) {
-            return "Latzug";
-        }
-        if (key.equals("butterfly")) {
-            return "Butterfly";
-        }
-        if (key.equals("back extension") || key.equals("rueckentrainer")) {
-            return "Rueckentrainer";
-        }
-        if (key.equals("reverse fly") || key.equals("reverse butterfly")) {
-            return "Reverse Butterfly";
-        }
-        if (key.equals("shoulder press") || key.equals("schulterpresse")) {
-            return "Schulterpresse";
-        }
-        if (key.equals("squat")) {
-            return "Squat";
-        }
-        if (key.equals("leg extension") || key.equals("beinstrecker")) {
-            return "Beinstrecker";
-        }
-        if (key.equals("leg curl") || key.equals("beinbeuger")) {
-            return "Beinbeuger";
-        }
-        if (key.equals("abductor") || key.equals("abduktor")) {
-            return "Abduktor";
-        }
-        if (key.equals("adductor") || key.equals("adduktor")) {
-            return "Adduktor";
-        }
-        if (key.equals("hip thrust")) {
-            return "Hip Thrust";
-        }
-        if (key.equals("bicep curl") || key.equals("bizepscurl")) {
-            return "Bizepscurl";
-        }
-        if (key.equals("tricep press") || key.equals("trizepspresse")) {
-            return "Trizepspresse";
-        }
-        if (key.equals("glute") || key.equals("glutaeus")) {
-            return "Glutaeus";
-        }
-        if (key.equals("calf raise") || key.equals("calves") ||
-            key.equals("wadentrainer") || key.equals("waden")) {
-            return "Wadentrainer";
+        initExerciseAliasMap();
+        if (_exerciseAliasMap != null && _exerciseAliasMap.hasKey(key)) {
+            return _exerciseAliasMap[key] as String;
         }
         return null;
     }
@@ -642,32 +612,6 @@ class EGYMApp extends Application.AppBase {
         }
     }
 
-    function toSafeNumber(val as Object?) as Number {
-        if (val instanceof Number) {
-            return val as Number;
-        }
-        if (val instanceof String) {
-            var str = val as String;
-            if (str.length() > 0) {
-                var parsed = str.toNumber();
-                if (parsed != null) {
-                    return parsed;
-                }
-            }
-        }
-        if (val != null && val has :toNumber) {
-            try {
-                var converted = val.toNumber();
-                if (converted != null && converted instanceof Number) {
-                    return converted as Number;
-                }
-            } catch (e) {
-                System.println("[EGYM app] Numeric coercion failed; using fallback.");
-            }
-        }
-        return -1;
-    }
-
     // ========================================================
     // DEBUG SANITY VALIDATION
     // ========================================================
@@ -870,10 +814,7 @@ class EGYMApp extends Application.AppBase {
         return startMenu;
     }
     private function getLastSetupMenuSubLabel() as String {
-        if (EGYMSafeStore.getStorageBool(EGYMKeys.LAST_SETUP_EXISTS, false)) {
-            return WatchUi.loadResource(Rez.Strings.UIRepeatLastSetupSub) as String;
-        }
-        return WatchUi.loadResource(Rez.Strings.UIRepeatLastSetupEmpty) as String;
+        return WatchUi.loadResource(Rez.Strings.UIRepeatLastSetupSub) as String;
     }
 
     private function getResetCalibrationSubLabel() as String {
@@ -887,21 +828,8 @@ class EGYMApp extends Application.AppBase {
     }
     private function formatMenuVersionTag(versionText as String) as String {
         var core = versionText;
-        if (core.length() > 0) {
-            var firstChar = core.substring(0, 1).toLower();
-            if (firstChar.equals("v")) {
-                core = core.substring(1, core.length());
-            }
-        }
-
-        var firstDot = core.find(".");
-        if (firstDot != null) {
-            var searchFrom = firstDot + 1;
-            var tail = core.substring(searchFrom, core.length());
-            var secondDotRel = tail.find(".");
-            if (secondDotRel != null) {
-                core = core.substring(0, searchFrom + secondDotRel);
-            }
+        if (core.length() > 0 && core.substring(0, 1).toLower().equals("v")) {
+            core = core.substring(1, core.length());
         }
         return "v" + core;
     }
@@ -914,6 +842,7 @@ class EGYMApp extends Application.AppBase {
         _resolvedExNames = null;
         _resolvedGoalNames = null;
         _resolvedMethodNames = null;
+        _exerciseAliasMap = null;
     }
 }
 

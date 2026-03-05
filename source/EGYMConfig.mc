@@ -315,34 +315,17 @@ class EGYMConfig {
 
             // Mirror EGYMView.cleanExName() so startup sync uses the same keys.
             for (var i = 0; i < all.size(); i++) {
-                var str = all[i];
-                var chars = str.toCharArray();
+                // Apply umlaut substitution, then strip spaces/tabs.
+                var substituted = EGYMSafeStore.applyUmlautSubstitution(all[i]);
+                var chars = substituted.toCharArray();
                 var clean = [] as Array<Char>;
-
                 for (var j = 0; j < chars.size(); j++) {
                     var c = chars[j];
-                    if (c == 0x20 || c == 0x09) {
-                        continue;
-                    }
-                    if (c == 0x00FC || c == 0x00DC) {
-                        clean.add('u');
-                        clean.add('e');
-                    } else if (c == 0x00F6 || c == 0x00D6) {
-                        clean.add('o');
-                        clean.add('e');
-                    } else if (c == 0x00E4 || c == 0x00C4) {
-                        clean.add('a');
-                        clean.add('e');
-                    } else if (c == 0x00DF) {
-                        clean.add('s');
-                        clean.add('s');
-                    } else {
+                    if (c != 0x20 && c != 0x09) {
                         clean.add(c);
                     }
                 }
-
-                var cleanName = clean.size() > 0 ? StringUtil.charArrayToString(clean) : "";
-                _cleanedExercisesCache.add(cleanName);
+                _cleanedExercisesCache.add(clean.size() > 0 ? StringUtil.charArrayToString(clean) : "");
             }
         }
         return cloneStringList(_cleanedExercisesCache);

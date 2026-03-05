@@ -9,6 +9,12 @@ class EGYMStatsView extends WatchUi.View {
     private const FILTER_RM = 1;
     private const FILTER_WATT = 2;
 
+    // Color palette (mirrors EGYMViewDrawer)
+    private const CLR_ACCENT    = CLR_ACCENT; // orange — title, streak
+    private const CLR_POSITIVE  = CLR_POSITIVE; // green  — sessions, history delta
+    private const CLR_HIGHLIGHT = CLR_HIGHLIGHT; // blue   — exercise names
+    private const CLR_DIM       = CLR_DIM; // dark grey — filter label, scroll arrows
+
     var _scrollIndex as Number = 0;
     var _exercises as Array<String>;
     var _cleanNames as Array<String>;
@@ -202,7 +208,7 @@ class EGYMStatsView extends WatchUi.View {
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
 
-        dc.setColor(0xffaa00, -1);
+        dc.setColor(CLR_ACCENT, -1);
         dc.drawText(
             w / 2,
             titleY,
@@ -212,7 +218,7 @@ class EGYMStatsView extends WatchUi.View {
         );
 
         if (_showHistory) {
-            dc.setColor(0x555555, -1);
+            dc.setColor(CLR_DIM, -1);
             dc.drawText(
                 w / 2,
                 filterY,
@@ -228,7 +234,7 @@ class EGYMStatsView extends WatchUi.View {
         }
 
         if (_visibleCount <= 1 && _summarySessions == 0) {
-            dc.setColor(0x555555, -1);
+            dc.setColor(CLR_DIM, -1);
             dc.drawText(
                 w / 2,
                 getStatsEmptyY(h),
@@ -284,7 +290,7 @@ class EGYMStatsView extends WatchUi.View {
         var contentWidth = getContentWidth(w);
 
         if (_showHistory) {
-            dc.setColor(0x00ff00, -1);
+            dc.setColor(CLR_POSITIVE, -1);
             dc.drawText(
                 w / 2,
                 y,
@@ -313,7 +319,7 @@ class EGYMStatsView extends WatchUi.View {
                     _sStreak + ": " + streak.toString();
             }
 
-            dc.setColor(0x00ff00, -1);
+            dc.setColor(CLR_POSITIVE, -1);
             dc.drawText(
                 w / 2,
                 y,
@@ -357,7 +363,7 @@ class EGYMStatsView extends WatchUi.View {
             Graphics.TEXT_JUSTIFY_CENTER
         );
 
-        dc.setColor(0xffaa00, -1);
+        dc.setColor(CLR_ACCENT, -1);
         dc.drawText(
             w / 2,
             y + rowH * 2,
@@ -388,7 +394,7 @@ class EGYMStatsView extends WatchUi.View {
         var watt = _wattValues[exIdx];
         var statLine = buildStatLine(rm, watt);
 
-        dc.setColor(0x00aaff, -1);
+        dc.setColor(CLR_HIGHLIGHT, -1);
         dc.drawText(
             w / 2,
             y,
@@ -414,7 +420,7 @@ class EGYMStatsView extends WatchUi.View {
 
         var histLine = _historyLines[exIdx];
         if (histLine.length() > 0) {
-            dc.setColor(0x00ff00, -1);
+            dc.setColor(CLR_POSITIVE, -1);
             dc.drawText(
                 w / 2,
                 y + historyOffset,
@@ -501,7 +507,7 @@ class EGYMStatsView extends WatchUi.View {
         _downTriPoints[2][0] = cx;
         _downTriPoints[2][1] = iy + gap + triSize;
 
-        dc.setColor(0x555555, -1);
+        dc.setColor(CLR_DIM, -1);
         dc.fillPolygon(_upTriPoints);
         dc.fillPolygon(_downTriPoints);
     }
@@ -519,27 +525,7 @@ class EGYMStatsView extends WatchUi.View {
     }
 
     function compareStrings(str1 as String, str2 as String) as Number {
-        var charArray1 = str1.toCharArray();
-        var charArray2 = str2.toCharArray();
-        var len1 = charArray1.size();
-        var len2 = charArray2.size();
-        var minLen = (len1 < len2) ? len1 : len2;
-
-        for (var i = 0; i < minLen; i++) {
-            if (charArray1[i].toNumber() > charArray2[i].toNumber()) {
-                return 1;
-            } else if (charArray1[i].toNumber() < charArray2[i].toNumber()) {
-                return -1;
-            }
-        }
-
-        if (len1 > len2) {
-            return 1;
-        } else if (len1 < len2) {
-            return -1;
-        }
-
-        return 0;
+        return EGYMSafeStore.compareStrings(str1, str2);
     }
 
     private function loadStrings() as Void {
@@ -641,10 +627,7 @@ class EGYMStatsView extends WatchUi.View {
         var allEx = EGYMConfig.getAllExercises();
         var cleaned = EGYMConfig.getCleanedExerciseNames();
         var appBase = Application.getApp();
-        var app = null;
-        if (appBase != null && appBase instanceof EGYMApp) {
-            app = appBase as EGYMApp;
-        }
+        var app = appBase instanceof EGYMApp ? appBase as EGYMApp : null;
 
         for (var i = 0; i < allEx.size(); i++) {
             var ex = allEx[i];
@@ -928,15 +911,19 @@ class EGYMStatsView extends WatchUi.View {
             return "";
         }
 
-        var out = "";
-        for (var i = 0; i < text.length(); i++) {
-            var next = out + text.substring(i, i + 1);
-            if (dc.getTextWidthInPixels(next, font) + ellipsisWidth > maxWidth) {
-                break;
+        // Binary search for the longest prefix that fits within maxWidth - ellipsisWidth.
+        var budget = maxWidth - ellipsisWidth;
+        var lo = 0;
+        var hi = text.length();
+        while (lo < hi) {
+            var mid = (lo + hi + 1) / 2;
+            if (dc.getTextWidthInPixels(text.substring(0, mid), font) <= budget) {
+                lo = mid;
+            } else {
+                hi = mid - 1;
             }
-            out = next;
         }
-        return out + ellipsis;
+        return lo > 0 ? text.substring(0, lo) + ellipsis : ellipsis;
     }
 
     private function getContentWidth(w as Number) as Number {

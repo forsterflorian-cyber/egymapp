@@ -1,6 +1,7 @@
 import Toybox.Application;
 import Toybox.Application.Storage;
 import Toybox.Lang;
+import Toybox.StringUtil;
 import Toybox.System;
 
 // ============================================================
@@ -184,5 +185,43 @@ class EGYMSafeStore {
             return value as String;
         }
         return value.toString();
+    }
+
+    // ========================================================
+    // SHARED STRING UTILITIES
+    // ========================================================
+
+    //! Replaces German umlauts with ASCII digraphs (ü→ue, ö→oe, ä→ae, ß→ss).
+    //! All other characters are passed through unchanged.
+    //! Used by EGYMApp (lookup keys), EGYMSessionManager (FIT strings),
+    //! and EGYMConfig (storage key cleaning) to avoid duplicating this logic.
+    static function applyUmlautSubstitution(str as String) as String {
+        var chars = str.toCharArray();
+        var out = [] as Array<Char>;
+        for (var i = 0; i < chars.size(); i++) {
+            var c = chars[i];
+            if      (c == 0x00FC || c == 0x00DC) { out.add('u'); out.add('e'); }
+            else if (c == 0x00F6 || c == 0x00D6) { out.add('o'); out.add('e'); }
+            else if (c == 0x00E4 || c == 0x00C4) { out.add('a'); out.add('e'); }
+            else if (c == 0x00DF)                { out.add('s'); out.add('s'); }
+            else                                 { out.add(c); }
+        }
+        return out.size() > 0 ? StringUtil.charArrayToString(out) : "";
+    }
+
+    //! Lexicographic string comparison without using String.compareTo(),
+    //! which is unavailable on some older Garmin devices (e.g. fenix 5).
+    //! Returns -1 if str1 < str2, 1 if str1 > str2, 0 if equal.
+    static function compareStrings(str1 as String, str2 as String) as Number {
+        var c1 = str1.toCharArray();
+        var c2 = str2.toCharArray();
+        var len = c1.size() < c2.size() ? c1.size() : c2.size();
+        for (var i = 0; i < len; i++) {
+            if (c1[i] < c2[i]) { return -1; }
+            if (c1[i] > c2[i]) { return  1; }
+        }
+        if (c1.size() < c2.size()) { return -1; }
+        if (c1.size() > c2.size()) { return  1; }
+        return 0;
     }
 }

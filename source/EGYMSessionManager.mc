@@ -33,7 +33,6 @@ class EGYMSessionManager {
     private const WATT_RECORDS_SAFE_CHARS = 47;
     private const AVG_PERF_FIELD_COUNT = 12;
     private const METHOD_NAME_FIELD_COUNT = 16;
-    private const WRITE_LIVE_SESSION_SUMMARY = false;
     // Session and FIT field handles
 
     var session as ActivityRecording.Session? = null;
@@ -283,17 +282,9 @@ class EGYMSessionManager {
         }
     }
 
-    //! Updates the session-level watt records field safely.
+    //! Reserved for live mid-session watt-records updates (currently disabled;
+    //! final value is written in stopAndSave instead).
     function writeRecordsField(recordsStr as String) as Void {
-        if (!WRITE_LIVE_SESSION_SUMMARY || !isRecording() || _wattRecordsField == null) {
-            return;
-        }
-
-        if (recordsStr.length() == 0) {
-            return;
-        }
-
-        safeSetField(_wattRecordsField, fitSafeLength(recordsStr, WATT_RECORDS_SAFE_CHARS), "live record summary");
     }
 
     //! Exposes the safe char budget for records summary strings.
@@ -499,20 +490,15 @@ class EGYMSessionManager {
     }
 
     //! Keep FIT strings strictly ASCII to avoid parser differences between platforms.
+    //! Umlauts are transliterated via the shared utility; remaining non-printable
+    //! characters are replaced with '_'.
     private function toFitAscii(str as String) as String {
-        var chars = str.toCharArray();
+        var substituted = EGYMSafeStore.applyUmlautSubstitution(str);
+        var chars = substituted.toCharArray();
         var out = [] as Array<Char>;
 
         for (var i = 0; i < chars.size(); i++) {
             var c = chars[i];
-
-            // Common transliterations for German names.
-            if (c == 0x00FC || c == 0x00DC) { out.add('u'); out.add('e'); continue; }
-            if (c == 0x00F6 || c == 0x00D6) { out.add('o'); out.add('e'); continue; }
-            if (c == 0x00E4 || c == 0x00C4) { out.add('a'); out.add('e'); continue; }
-            if (c == 0x00DF) { out.add('s'); out.add('s'); continue; }
-
-            // Printable 7-bit ASCII range.
             if (c >= 0x20 && c <= 0x7E) {
                 out.add(c);
             } else {

@@ -1279,16 +1279,7 @@ class EGYMView extends WatchUi.View {
     }
 
     function compareStrings(a as String, b as String) as Number {
-        var ac = a.toCharArray();
-        var bc = b.toCharArray();
-        var len = ac.size() < bc.size() ? ac.size() : bc.size();
-        for (var i = 0; i < len; i++) {
-            if (ac[i] < bc[i]) { return -1; }
-            if (ac[i] > bc[i]) { return 1; }
-        }
-        if (ac.size() < bc.size()) { return -1; }
-        if (ac.size() > bc.size()) { return 1; }
-        return 0;
+        return EGYMSafeStore.compareStrings(a, b);
     }
 
     // ========================================================
