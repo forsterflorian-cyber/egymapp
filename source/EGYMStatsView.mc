@@ -10,10 +10,10 @@ class EGYMStatsView extends WatchUi.View {
     private const FILTER_WATT = 2;
 
     // Color palette (mirrors EGYMViewDrawer)
-    private const CLR_ACCENT    = CLR_ACCENT; // orange — title, streak
-    private const CLR_POSITIVE  = CLR_POSITIVE; // green  — sessions, history delta
-    private const CLR_HIGHLIGHT = CLR_HIGHLIGHT; // blue   — exercise names
-    private const CLR_DIM       = CLR_DIM; // dark grey — filter label, scroll arrows
+    private const CLR_ACCENT    = 0xffaa00; // orange — title, streak
+    private const CLR_POSITIVE  = 0x00ff00; // green  — sessions, history delta
+    private const CLR_HIGHLIGHT = 0x00aaff; // blue   — exercise names
+    private const CLR_DIM       = 0x555555; // dark grey — filter label, scroll arrows
 
     var _scrollIndex as Number = 0;
     var _exercises as Array<String>;

@@ -1218,27 +1218,13 @@ class EGYMView extends WatchUi.View {
             return _cleanNameCache[exName] as String;
         }
 
-        var chars = exName.toCharArray();
+        // Apply umlaut substitution, then strip spaces/tabs.
+        var substituted = EGYMSafeStore.applyUmlautSubstitution(exName);
+        var chars = substituted.toCharArray();
         var clean = [] as Array<Char>;
-
         for (var i = 0; i < chars.size(); i++) {
             var c = chars[i];
-            if (c == 0x20 || c == 0x09) { continue; } // Skip spaces and tabs.
-
-            // Transliterate umlauts/eszett to ASCII-safe key forms.
-            if (c == 0x00FC || c == 0x00DC) {
-                clean.add('u');
-                clean.add('e');
-            } else if (c == 0x00F6 || c == 0x00D6) {
-                clean.add('o');
-                clean.add('e');
-            } else if (c == 0x00E4 || c == 0x00C4) {
-                clean.add('a');
-                clean.add('e');
-            } else if (c == 0x00DF) {
-                clean.add('s');
-                clean.add('s');
-            } else {
+            if (c != 0x20 && c != 0x09) {
                 clean.add(c);
             }
         }
