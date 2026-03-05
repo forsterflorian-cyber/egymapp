@@ -380,17 +380,13 @@ class EGYMApp extends Application.AppBase {
         }
 
         syncAndMigrateProperties();
-        
+
         if (view.sm.isRecording()) {
+            // Refresh weight suggestions mid-workout with the new settings.
             view.initExercisePhase();
-        } else {
-            var freshMenu = createStartMenu();
-            WatchUi.switchToView(
-                freshMenu,
-                new EGYMStartMenuDelegate(),
-                WatchUi.SLIDE_IMMEDIATE
-            );
         }
+        // If not recording, data is already synced above. Don't navigate
+        // away — the user may be browsing Stats or Diagnostics.
     }
 
     // ========================================================
@@ -669,6 +665,9 @@ class EGYMApp extends Application.AppBase {
             Application.Properties.getValue(key);
             return true;
         } catch (e) {
+            // Broad catch intentional: Connect IQ throws different exception
+            // types for missing property keys across firmware versions.
+            // This function is only called from the startup sanity validator.
             return false;
         }
     }
