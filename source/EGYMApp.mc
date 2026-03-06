@@ -31,6 +31,7 @@ class EGYMApp extends Application.AppBase {
     private var _sanityLoggingUnavailable as Boolean = false;
     private var _pendingCalibrationReset as Boolean = false;
     private var _calibrationResetCompleted as Boolean = false;
+    private var _recoverableCheckpoint as Dictionary? = null;
 
     // Storage schema for watch-side persisted data.
     private const CURRENT_STORAGE_SCHEMA_VERSION = 1;
@@ -162,12 +163,52 @@ class EGYMApp extends Application.AppBase {
         runStorageMigrations();
         runLearnedCalibrationCleanup();
         syncAndMigrateProperties();
+        refreshRecoverableCheckpoint();
         runStartupSanityValidator();
     }
 
     //! Called when the app stops; frees cached resource strings
     function onStop(state as Dictionary?) as Void {
+        if (mView != null) {
+            try {
+                mView.persistSessionCheckpoint("app_onStop");
+            } catch (e) {
+                debugSanityLog("onStop checkpoint write failed.");
+            }
+
+            try {
+                mView.emergencyStopAndSave();
+            } catch (e2) {
+                debugSanityLog("onStop emergency stop/save failed.");
+            }
+        }
         releaseResources();
+    }
+
+    function refreshRecoverableCheckpoint() as Void {
+        _recoverableCheckpoint = EGYMSafeStore.loadCheckpoint();
+    }
+
+    function hasRecoverableCheckpoint() as Boolean {
+        return _recoverableCheckpoint != null;
+    }
+
+    function discardRecoverableCheckpoint() as Void {
+        _recoverableCheckpoint = null;
+        EGYMSafeStore.clearCheckpoint();
+    }
+
+    function tryResumeRecoverableCheckpoint(view as EGYMView) as Boolean {
+        if (_recoverableCheckpoint == null) {
+            return false;
+        }
+
+        var checkpoint = _recoverableCheckpoint as Dictionary;
+        var restored = view.restoreFromCheckpoint(checkpoint);
+        if (restored) {
+            _recoverableCheckpoint = null;
+        }
+        return restored;
     }
 
     // ========================================================
@@ -386,7 +427,7 @@ class EGYMApp extends Application.AppBase {
             view.initExercisePhase();
         }
         // If not recording, data is already synced above. Don't navigate
-        // away — the user may be browsing Stats or Diagnostics.
+        // away - the user may be browsing Stats or Diagnostics.
     }
 
     // ========================================================
@@ -689,6 +730,7 @@ class EGYMApp extends Application.AppBase {
     // ========================================================
 
     function createStartMenu() as WatchUi.Menu2 {
+        refreshRecoverableCheckpoint();
         var isPlus = EGYMSafeStore.getPropertyBool(EGYMKeys.IS_EGYM_PLUS, true);
 
         var menuTitle = isPlus

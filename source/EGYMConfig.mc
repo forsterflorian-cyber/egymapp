@@ -296,9 +296,9 @@ class EGYMConfig {
 
         var goal = egymApp.getGoalName(goalKey);
         var method = egymApp.getMethodName(methodKey);
-        var repsLabel = WatchUi.loadResource(Rez.Strings.UIReps) as String;
 
-        return prefix + ":" + goal + "\n" + method + " " + repsVal + " " + repsLabel;
+        // Single line — Menu2 sub-labels don't support \n; both parts would overlap.
+        return prefix + ":" + goal + " " + method + " " + repsVal;
     }
 
     static function getCircleName() as String {

@@ -27,7 +27,13 @@ class EGYMProgChangeConfirmDelegate extends WatchUi.ConfirmationDelegate {
         if (response == WatchUi.CONFIRM_YES) {
             var progIndex = _view._pendingProgChange;
             _view._pendingProgChange = -1;
-            _view.updateProgram(progIndex);
+            if (!_view.updateProgram(progIndex)) {
+                WatchUi.pushView(
+                    new WatchUi.Confirmation("FIT-Session konnte nicht gestartet werden."),
+                    new EGYMNoopConfirmDelegate(),
+                    WatchUi.SLIDE_UP
+                );
+            }
         } else {
             _view._pendingProgChange = -1;
         }

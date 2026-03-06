@@ -14,18 +14,17 @@ import Toybox.UserProfile;
 class EGYMViewDrawer {
 
     // Color palette
-    private const CLR_ACCENT    = CLR_ACCENT; // orange — headings, highlights
-    private const CLR_POSITIVE  = CLR_POSITIVE; // green  — PRs, good values
-    private const CLR_HIGHLIGHT = CLR_HIGHLIGHT; // blue   — exercise names, selection
-    private const CLR_SECONDARY = CLR_SECONDARY; // light grey — labels, units
-    private const CLR_DIM       = CLR_DIM; // dark grey  — muted / scroll arrows
-    private const CLR_MID       = CLR_MID; // medium grey
-    private const CLR_DARK      = CLR_DARK; // very dark  — bar backgrounds
-    private const CLR_WARN      = CLR_WARN; // orange-red — save-failed, HR z4
-    private const CLR_ERROR     = CLR_ERROR; // dark red   — discard
-    private const CLR_DANGER    = CLR_DANGER; // red        — HR z5
-    private const CLR_CAUTION   = CLR_CAUTION; // yellow     — HR z3
-    private const CLR_OK        = CLR_OK; // dark green — confirmed action
+    private const CLR_ACCENT    = 0xffaa00; // orange — headings, highlights
+    private const CLR_POSITIVE  = 0x00ff00; // green  — PRs, good values
+    private const CLR_HIGHLIGHT = 0x00aaff; // blue   — exercise names, selection
+    private const CLR_SECONDARY = 0xaaaaaa; // light grey — labels, units
+    private const CLR_DIM       = 0x555555; // dark grey  — muted / scroll arrows
+    private const CLR_MID       = 0x777777; // medium grey
+    private const CLR_WARN      = 0xff5500; // orange-red — save-failed, HR z4
+    private const CLR_ERROR     = 0xaa0000; // dark red   — discard
+    private const CLR_DANGER    = 0xff0000; // red        — HR z5
+    private const CLR_CAUTION   = 0xffff00; // yellow     — HR z3
+    private const CLR_OK        = 0x00aa00; // dark green — confirmed action
 
     // Layout caches (reset on session change)
     private var _breakLayoutCached as Boolean = false;
@@ -58,6 +57,153 @@ class EGYMViewDrawer {
     // HR zone cache
     private var _hrZones as Array<Number>? = null;
 
+    // Text-fit cache (bounded to avoid unbounded growth)
+    private const FIT_TEXT_CACHE_LIMIT = 120;
+    private var _fitTextCache as Dictionary<String, String> = {} as Dictionary<String, String>;
+    private var _fitTextCacheCount as Number = 0;
+
+    // Width profile tables (initialized once, reused every frame)
+    private var _wpContentInset as Array<Number> = [
+        10, 10, 10, 12, 12, 14, 14,
+        16, 12, 16, 20, 22, 18, 24
+    ] as Array<Number>;
+
+    private var _wpProgressBarWidth as Array<Number> = [
+        86, 90, 96, 104, 112, 124, 140,
+        154, 170, 186, 200, 214, 230, 240
+    ] as Array<Number>;
+
+    private var _wpRecordSplitOffset as Array<Number> = [
+        10, 10, 10, 11, 12, 12, 13,
+        14, 16, 18, 20, 22, 24, 24
+    ] as Array<Number>;
+
+    private var _wpRecordBoltXOffset as Array<Number> = [
+        2, 2, 2, 2, 2, 2, 2,
+        3, 3, 3, 4, 4, 4, 4
+    ] as Array<Number>;
+
+    private var _wpSideHintGap as Array<Number> = [
+        3, 3, 3, 4, 4, 4, 4,
+        5, 6, 6, 7, 8, 8, 8
+    ] as Array<Number>;
+
+    private var _wpDecisionButtonGap as Array<Number> = [
+        12, 12, 12, 13, 14, 15, 16,
+        18, 20, 22, 24, 26, 28, 28
+    ] as Array<Number>;
+
+    private var _wpDecisionButtonRadius as Array<Number> = [
+        6, 6, 6, 7, 7, 8, 8,
+        9, 10, 10, 11, 12, 12, 12
+    ] as Array<Number>;
+
+    // Height profile tables (initialized once, reused every frame)
+    private var _hpProgramSummaryScale as Array<Number> = [
+        0.16, 0.17, 0.175, 0.182, 0.186, 0.19, 0.195,
+        0.20, 0.205, 0.21, 0.215, 0.22, 0.225
+    ] as Array<Number>;
+
+    private var _hpProgressBarScale as Array<Number> = [
+        0.74, 0.745, 0.75, 0.752, 0.754, 0.756, 0.758,
+        0.762, 0.768, 0.772, 0.776, 0.78, 0.784
+    ] as Array<Number>;
+
+    private var _hpMetricInfoLabelGap as Array<Number> = [
+        12, 12, 13, 15, 16, 18, 20,
+        22, 24, 26, 28, 30, 32
+    ] as Array<Number>;
+
+    private var _hpMetricValueGap as Array<Number> = [
+        24, 26, 28, 32, 36, 42, 46,
+        50, 60, 66, 72, 78, 84
+    ] as Array<Number>;
+
+    private var _hpBreakTitleGap as Array<Number> = [
+        3, 3, 4, 5, 5, 6, 7,
+        8, 9, 10, 11, 12, 13
+    ] as Array<Number>;
+
+    private var _hpBottomNameGap as Array<Number> = [
+        8, 8, 9, 10, 11, 12, 13,
+        14, 16, 17, 18, 19, 20
+    ] as Array<Number>;
+
+    private var _hpBottomLabelGap as Array<Number> = [
+        10, 10, 11, 12, 13, 14, 15,
+        16, 18, 19, 20, 21, 22
+    ] as Array<Number>;
+
+    private var _hpActionHintGap as Array<Number> = [
+        8, 9, 10, 10, 11, 12, 13,
+        14, 15, 16, 17, 18, 20
+    ] as Array<Number>;
+
+    private var _hpWorkoutBarLift as Array<Number> = [
+        6, 6, 7, 8, 9, 10, 11,
+        12, 14, 15, 16, 18, 20
+    ] as Array<Number>;
+
+    private var _hpWorkoutFooterTopGap as Array<Number> = [
+        0, 0, 0, 0, 1, 1, 1,
+        2, 2, 3, 4, 5, 6
+    ] as Array<Number>;
+
+    private var _hpWorkoutFooterLineGap as Array<Number> = [
+        8, 8, 9, 10, 11, 12, 12,
+        13, 12, 14, 16, 17, 18
+    ] as Array<Number>;
+
+    private var _hpWorkoutFooterHintGap as Array<Number> = [
+        18, 18, 19, 20, 22, 23, 24,
+        26, 42, 50, 56, 60, 64
+    ] as Array<Number>;
+
+    private var _hpAdjustValueExtraGap as Array<Number> = [
+        0, 0, 1, 2, 3, 4, 5,
+        6, 7, 8, 9, 10, 12
+    ] as Array<Number>;
+
+    private var _hpSuccessSummaryLineGap as Array<Number> = [
+        16, 16, 17, 18, 18, 19, 20,
+        20, 21, 22, 23, 24, 25
+    ] as Array<Number>;
+
+    private var _hpSuccessSummaryTailGap as Array<Number> = [
+        14, 14, 14, 15, 15, 16, 16,
+        17, 18, 19, 20, 21, 22
+    ] as Array<Number>;
+
+    private var _hpExerciseHintLineGap as Array<Number> = [
+        10, 10, 11, 12, 13, 14, 15,
+        16, 20, 22, 24, 26, 28
+    ] as Array<Number>;
+
+    private var _hpRecordRowMinHeight as Array<Number> = [
+        14, 14, 14, 15, 16, 16, 16,
+        18, 20, 22, 24, 26, 28
+    ] as Array<Number>;
+
+    private var _hpRecordBoltYOffset as Array<Number> = [
+        1, 1, 1, 2, 2, 2, 2,
+        3, 3, 3, 4, 4, 4
+    ] as Array<Number>;
+
+    private var _hpBoltMinHeight as Array<Number> = [
+        7, 7, 7, 8, 8, 8, 9,
+        10, 11, 12, 13, 14, 15
+    ] as Array<Number>;
+
+    private var _hpProgressBarHeight as Array<Number> = [
+        3, 3, 3, 4, 4, 4, 4,
+        5, 6, 6, 6, 7, 7
+    ] as Array<Number>;
+
+    private var _hpMetricUnitGap as Array<Number> = [
+        3, 3, 3, 4, 4, 4, 4,
+        5, 5, 6, 6, 6, 7
+    ] as Array<Number>;
+
     // ========================================================
     // INITIALIZATION
     // ========================================================
@@ -71,6 +217,8 @@ class EGYMViewDrawer {
         _breakLayoutCached = false;
         _lastTimeRaw = -1;
         _lastCals = -1;
+        _fitTextCache = {} as Dictionary<String, String>;
+        _fitTextCacheCount = 0;
     }
 
     // ========================================================
@@ -497,7 +645,7 @@ class EGYMViewDrawer {
         var progress = (completed * barW) / total;
         var barY = getWorkoutProgressBarY(h);
 
-        dc.setColor(CLR_DARK, -1);
+        dc.setColor(CLR_DIM, -1); // CLR_DIM (0x555555) visible on both AMOLED and MIP
         dc.fillRectangle((w - barW) / 2, barY, barW, getProgressBarHeight(h));
         dc.setColor(CLR_ACCENT, -1);
         dc.fillRectangle((w - barW) / 2, barY, progress, getProgressBarHeight(h));
@@ -831,10 +979,7 @@ class EGYMViewDrawer {
     }
 
     private function getProgressBarY(h as Number) as Number {
-        return (h * getHeightProfileValue(h, [
-            0.74, 0.745, 0.75, 0.752, 0.754, 0.756, 0.758,
-            0.762, 0.768, 0.772, 0.776, 0.78, 0.784
-        ])).toNumber();
+        return (h * getHeightProfileValue(h, _hpProgressBarScale)).toNumber();
     }
 
     private function getBottomNameY(h as Number) as Number {
@@ -880,10 +1025,7 @@ class EGYMViewDrawer {
     }
 
     private function getProgramSummaryY(h as Number) as Number {
-        return (h * getHeightProfileValue(h, [
-            0.16, 0.17, 0.175, 0.182, 0.186, 0.19, 0.195,
-            0.20, 0.205, 0.21, 0.215, 0.22, 0.225
-        ])).toNumber();
+        return (h * getHeightProfileValue(h, _hpProgramSummaryScale)).toNumber();
     }
 
     private function getMetricInfoY(h as Number) as Number {
@@ -936,12 +1078,22 @@ class EGYMViewDrawer {
         if (text.length() == 0) {
             return text;
         }
+        if (maxWidth <= 0) {
+            return "";
+        }
+
         if (dc.getTextWidthInPixels(text, font) <= maxWidth) {
             return text;
         }
 
+        var cacheKey = buildFitTextCacheKey(text, font, maxWidth);
+        if (_fitTextCache.hasKey(cacheKey)) {
+            return _fitTextCache[cacheKey] as String;
+        }
+
         var ellipsis = "...";
         if (dc.getTextWidthInPixels(ellipsis, font) > maxWidth) {
+            cacheFitTextResult(cacheKey, "");
             return "";
         }
 
@@ -949,12 +1101,34 @@ class EGYMViewDrawer {
         while (end > 0) {
             var candidate = text.substring(0, end) + ellipsis;
             if (dc.getTextWidthInPixels(candidate, font) <= maxWidth) {
+                cacheFitTextResult(cacheKey, candidate);
                 return candidate;
             }
             end--;
         }
 
+        cacheFitTextResult(cacheKey, ellipsis);
         return ellipsis;
+    }
+
+    private function buildFitTextCacheKey(
+        text as String,
+        font as Graphics.FontType,
+        maxWidth as Number
+    ) as String {
+        return font.toString() + "|" + maxWidth.toString() + "|" + text;
+    }
+
+    private function cacheFitTextResult(key as String, value as String) as Void {
+        if (_fitTextCacheCount >= FIT_TEXT_CACHE_LIMIT) {
+            _fitTextCache = {} as Dictionary<String, String>;
+            _fitTextCacheCount = 0;
+        }
+
+        if (!_fitTextCache.hasKey(key)) {
+            _fitTextCacheCount += 1;
+        }
+        _fitTextCache[key] = value;
     }
 
     private function getSafeContentWidth(w as Number) as Number {
@@ -963,66 +1137,39 @@ class EGYMViewDrawer {
     }
 
     private function getContentInset(w as Number) as Number {
-        return getWidthProfileValue(w, [
-            10, 10, 10, 12, 12, 14, 14,
-            16, 12, 16, 20, 22, 18, 24
-        ]);
+        return getWidthProfileValue(w, _wpContentInset);
     }
 
     private function getMetricInfoGap(h as Number) as Number {
-        return getHeightProfileValue(h, [
-            12, 12, 13, 15, 16, 18, 20,
-            22, 24, 26, 28, 30, 32
-        ]);
+        return getHeightProfileValue(h, _hpMetricInfoLabelGap);
     }
 
     private function getMetricLabelGap(h as Number) as Number {
-        return getHeightProfileValue(h, [
-            12, 12, 13, 15, 16, 18, 20,
-            22, 24, 26, 28, 30, 32
-        ]);
+        return getHeightProfileValue(h, _hpMetricInfoLabelGap);
     }
 
     private function getMetricValueGap(h as Number) as Number {
-        return getHeightProfileValue(h, [
-            24, 26, 28, 32, 36, 42, 46,
-            50, 60, 66, 72, 78, 84
-        ]);
+        return getHeightProfileValue(h, _hpMetricValueGap);
     }
 
     private function getBreakTitleGap(h as Number) as Number {
-        return getHeightProfileValue(h, [
-            3, 3, 4, 5, 5, 6, 7,
-            8, 9, 10, 11, 12, 13
-        ]);
+        return getHeightProfileValue(h, _hpBreakTitleGap);
     }
 
     private function getBottomNameGap(h as Number) as Number {
-        return getHeightProfileValue(h, [
-            8, 8, 9, 10, 11, 12, 13,
-            14, 16, 17, 18, 19, 20
-        ]);
+        return getHeightProfileValue(h, _hpBottomNameGap);
     }
 
     private function getBottomLabelGap(h as Number) as Number {
-        return getHeightProfileValue(h, [
-            10, 10, 11, 12, 13, 14, 15,
-            16, 18, 19, 20, 21, 22
-        ]);
+        return getHeightProfileValue(h, _hpBottomLabelGap);
     }
 
     private function getActionHintGap(h as Number) as Number {
-        return getHeightProfileValue(h, [
-            8, 9, 10, 10, 11, 12, 13,
-            14, 15, 16, 17, 18, 20
-        ]);
+        return getHeightProfileValue(h, _hpActionHintGap);
     }
 
     private function getWorkoutBarLift(h as Number) as Number {
-        return getHeightProfileValue(h, [
-            6, 6, 7, 8, 9, 10, 11,
-            12, 14, 15, 16, 18, 20
-        ]);
+        return getHeightProfileValue(h, _hpWorkoutBarLift);
     }
 
     private function getWorkoutFooterShift(h as Number) as Number {
@@ -1030,59 +1177,35 @@ class EGYMViewDrawer {
     }
 
     private function getWorkoutFooterTopGap(h as Number) as Number {
-        return getHeightProfileValue(h, [
-            0, 0, 0, 0, 1, 1, 1,
-            2, 2, 3, 4, 5, 6
-        ]);
+        return getHeightProfileValue(h, _hpWorkoutFooterTopGap);
     }
 
     private function getWorkoutFooterLineGap(h as Number) as Number {
-        return getHeightProfileValue(h, [
-            8, 8, 9, 10, 11, 12, 12,
-            13, 12, 14, 16, 17, 18
-        ]);
+        return getHeightProfileValue(h, _hpWorkoutFooterLineGap);
     }
 
     private function getWorkoutFooterHintGap(h as Number) as Number {
-        return getHeightProfileValue(h, [
-            18, 18, 19, 20, 22, 23, 24,
-            26, 42, 50, 56, 60, 64
-        ]);
+        return getHeightProfileValue(h, _hpWorkoutFooterHintGap);
     }
 
     private function getAdjustValueExtraGap(h as Number) as Number {
-        return getHeightProfileValue(h, [
-            0, 0, 1, 2, 3, 4, 5,
-            6, 7, 8, 9, 10, 12
-        ]);
+        return getHeightProfileValue(h, _hpAdjustValueExtraGap);
     }
 
     private function getSuccessSummaryLineGap(h as Number) as Number {
-        return getHeightProfileValue(h, [
-            16, 16, 17, 18, 18, 19, 20,
-            20, 21, 22, 23, 24, 25
-        ]);
+        return getHeightProfileValue(h, _hpSuccessSummaryLineGap);
     }
 
     private function getSuccessSummaryTailGap(h as Number) as Number {
-        return getHeightProfileValue(h, [
-            14, 14, 14, 15, 15, 16, 16,
-            17, 18, 19, 20, 21, 22
-        ]);
+        return getHeightProfileValue(h, _hpSuccessSummaryTailGap);
     }
 
     private function getExerciseHintLineGap(h as Number) as Number {
-        return getHeightProfileValue(h, [
-            10, 10, 11, 12, 13, 14, 15,
-            16, 20, 22, 24, 26, 28
-        ]);
+        return getHeightProfileValue(h, _hpExerciseHintLineGap);
     }
 
     private function getProgressBarWidth(w as Number) as Number {
-        return getWidthProfileValue(w, [
-            86, 90, 96, 104, 112, 124, 140,
-            154, 170, 186, 200, 214, 230, 240
-        ]);
+        return getWidthProfileValue(w, _wpProgressBarWidth);
     }
 
     // Exact screen classes from the products in manifest.xml (via local SDK docs):
@@ -1229,73 +1352,43 @@ class EGYMViewDrawer {
     }
 
     private function getRecordRowMinHeight(h as Number) as Number {
-        return getHeightProfileValue(h, [
-            14, 14, 14, 15, 16, 16, 16,
-            18, 20, 22, 24, 26, 28
-        ]);
+        return getHeightProfileValue(h, _hpRecordRowMinHeight);
     }
 
     private function getRecordSplitOffset(w as Number) as Number {
-        return getWidthProfileValue(w, [
-            10, 10, 10, 11, 12, 12, 13,
-            14, 16, 18, 20, 22, 24, 24
-        ]);
+        return getWidthProfileValue(w, _wpRecordSplitOffset);
     }
 
     private function getRecordBoltXOffset(w as Number) as Number {
-        return getWidthProfileValue(w, [
-            2, 2, 2, 2, 2, 2, 2,
-            3, 3, 3, 4, 4, 4, 4
-        ]);
+        return getWidthProfileValue(w, _wpRecordBoltXOffset);
     }
 
     private function getRecordBoltYOffset(h as Number) as Number {
-        return getHeightProfileValue(h, [
-            1, 1, 1, 2, 2, 2, 2,
-            3, 3, 3, 4, 4, 4
-        ]);
+        return getHeightProfileValue(h, _hpRecordBoltYOffset);
     }
 
     private function getBoltMinHeight(h as Number) as Number {
-        return getHeightProfileValue(h, [
-            7, 7, 7, 8, 8, 8, 9,
-            10, 11, 12, 13, 14, 15
-        ]);
+        return getHeightProfileValue(h, _hpBoltMinHeight);
     }
 
     private function getProgressBarHeight(h as Number) as Number {
-        return getHeightProfileValue(h, [
-            3, 3, 3, 4, 4, 4, 4,
-            5, 6, 6, 6, 7, 7
-        ]);
+        return getHeightProfileValue(h, _hpProgressBarHeight);
     }
 
     private function getMetricUnitGap(h as Number) as Number {
-        return getHeightProfileValue(h, [
-            3, 3, 3, 4, 4, 4, 4,
-            5, 5, 6, 6, 6, 7
-        ]);
+        return getHeightProfileValue(h, _hpMetricUnitGap);
     }
 
     private function getSideHintGap(w as Number) as Number {
-        return getWidthProfileValue(w, [
-            3, 3, 3, 4, 4, 4, 4,
-            5, 6, 6, 7, 8, 8, 8
-        ]);
+        return getWidthProfileValue(w, _wpSideHintGap);
     }
 
     private function getDecisionButtonGap(w as Number) as Number {
-        return getWidthProfileValue(w, [
-            12, 12, 12, 13, 14, 15, 16,
-            18, 20, 22, 24, 26, 28, 28
-        ]);
+        return getWidthProfileValue(w, _wpDecisionButtonGap);
     }
 
     private function getDecisionButtonRadius(w as Number) as Number {
-        return getWidthProfileValue(w, [
-            6, 6, 6, 7, 7, 8, 8,
-            9, 10, 10, 11, 12, 12, 12
-        ]);
+        return getWidthProfileValue(w, _wpDecisionButtonRadius);
     }
 
     // ========================================================

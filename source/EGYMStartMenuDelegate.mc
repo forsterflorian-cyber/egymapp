@@ -76,7 +76,16 @@ class EGYMStartMenuDelegate extends WatchUi.Menu2InputDelegate {
             return;
         }
         if (idStr.equals("start_workout")) {
-            startTraining(getWorkoutView());
+            var view = getWorkoutView();
+            if (app.hasRecoverableCheckpoint()) {
+                WatchUi.pushView(
+                    new WatchUi.Confirmation("Training fortsetzen?"),
+                    new EGYMResumeCheckpointConfirmDelegate(self, view),
+                    WatchUi.SLIDE_UP
+                );
+            } else {
+                startTraining(view);
+            }
             return;
         }
 
@@ -249,18 +258,66 @@ class EGYMStartMenuDelegate extends WatchUi.Menu2InputDelegate {
             activeZirkel = [] as Array<String>;
         }
 
+        (Application.getApp() as EGYMApp).discardRecoverableCheckpoint();
+
+        var programStarted = view.updateProgram(progIndex);
+        if (!programStarted) {
+            _trainingStarted = false;
+            WatchUi.pushView(
+                new WatchUi.Confirmation("FIT-Session konnte nicht gestartet werden."),
+                new EGYMNoopConfirmDelegate(),
+                WatchUi.SLIDE_UP
+            );
+            return;
+        }
+
         EGYMSafeStore.setStorageValue(EGYMKeys.LAST_ZIRKEL, activeZirkel);
         if (persistSetup) {
             saveLastSetupSnapshot(progIndex, circleId);
         }
         view.setTestMode(_isTestMode);
-        view.updateProgram(progIndex);
         view.isIndividualMode = isIndividual;
         view.zirkel = activeZirkel as Array<String>;
         if (activeZirkel.size() > 0) {
             view.initExercisePhase();
         } else {
             view.refreshLabels();
+        }
+
+        WatchUi.pushView(view, new EGYMDelegate(view), WatchUi.SLIDE_LEFT);
+
+        if (_resetTimer != null) {
+            _resetTimer.stop();
+            _resetTimer = null;
+        }
+        _resetTimer = new Timer.Timer();
+        _resetTimer.start(method(:resetStartFlag), 1000, false);
+    }
+
+    function handleResumeCheckpointResponse(shouldResume as Boolean, view as EGYMView) as Void {
+        if (!shouldResume) {
+            var appNo = Application.getApp() as EGYMApp;
+            appNo.discardRecoverableCheckpoint();
+            startTraining(view);
+            return;
+        }
+
+        if (_trainingStarted) {
+            return;
+        }
+        _trainingStarted = true;
+
+        var appYes = Application.getApp() as EGYMApp;
+        var restored = appYes.tryResumeRecoverableCheckpoint(view);
+        if (!restored) {
+            _trainingStarted = false;
+            appYes.discardRecoverableCheckpoint();
+            WatchUi.pushView(
+                new WatchUi.Confirmation("Wiederherstellung fehlgeschlagen."),
+                new EGYMNoopConfirmDelegate(),
+                WatchUi.SLIDE_UP
+            );
+            return;
         }
 
         WatchUi.pushView(view, new EGYMDelegate(view), WatchUi.SLIDE_LEFT);

@@ -92,6 +92,141 @@ function testConfigExerciseListCopyIsolation(logger) {
 }
 
 (:test)
+function testWorkoutEngineTargetAndFactorKey(logger) {
+    var engine = new EGYMWorkoutEngine();
+    var prog = {
+        :p => "MA",
+        :g => "GoalMuscleBuild",
+        :m => "ADAPTIVE",
+        :w => "10",
+        :i => 0.68
+    };
+
+    var baseFactorBasis = engine.getBaseFactorBasis(prog);
+    Test.assertEqual(680, baseFactorBasis);
+
+    var key = engine.buildLearnedFactorKey("Beinpresse", "MA", "ADAPTIVE", baseFactorBasis, 2);
+    Test.assertEqual("lf_Beinpresse_MA_ADAPTIVE_680_g2", key);
+
+    var activeFactor = engine.resolveActiveFactorBasis(baseFactorBasis, 0);
+    Test.assertEqual(680, activeFactor);
+    Test.assertEqual(68, engine.computeTargetWeight(100, activeFactor));
+    return true;
+}
+
+(:test)
+function testWorkoutEngineAdaptiveOverperformanceScenario(logger) {
+    var engine = new EGYMWorkoutEngine();
+
+    // Adaptive profile example:
+    // RM=100kg, planned factor=0.68 -> target=68kg.
+    // User clearly over-performs (effectively "more reps than planned")
+    // and handles 76kg. The smoothed learned factor should raise next target.
+    var newBasis = engine.computeLearnedFactorUpdate(100, 76, 68, 680);
+    Test.assert(newBasis != null);
+    Test.assertEqual(700, newBasis);
+    Test.assertEqual(70, engine.computeTargetWeight(100, newBasis as Number));
+
+    // If the user under-performs, the learned factor decreases smoothly.
+    var lowerBasis = engine.computeLearnedFactorUpdate(100, 60, 68, 680);
+    Test.assert(lowerBasis != null);
+    Test.assertEqual(660, lowerBasis);
+    Test.assertEqual(66, engine.computeTargetWeight(100, lowerBasis as Number));
+    return true;
+}
+
+(:test)
+function testWorkoutEngineCoverageForAllPlusPrograms(logger) {
+    var engine = new EGYMWorkoutEngine();
+    var programs = EGYMConfig.getAllPrograms();
+    Test.assertEqual(32, programs.size());
+
+    var seenMethods = {} as Dictionary<String, Boolean>;
+
+    for (var i = 0; i < programs.size(); i++) {
+        var prog = programs[i] as Dictionary;
+        var method = EGYMConfig.getProgramMethodKey(prog);
+        seenMethods[method] = true;
+
+        var baseFactor = engine.getBaseFactorBasis(prog);
+        Test.assert(baseFactor >= EGYMConfig.MIN_LEARNED_FACTOR);
+        Test.assert(baseFactor <= EGYMConfig.MAX_LEARNED_FACTOR);
+
+        var repsSpec = EGYMConfig.getProgramRepsSpec(prog);
+        Test.assert(engine.parseReps(repsSpec) > 0);
+
+        // RM=100 is a deterministic reference point for all plans.
+        var target = engine.computeTargetWeight(100, baseFactor);
+        Test.assert(target > 0);
+    }
+
+    Test.assert(seenMethods.hasKey("REGULAR"));
+    Test.assert(seenMethods.hasKey("ADAPTIVE"));
+    Test.assert(seenMethods.hasKey("NEGATIVE"));
+    Test.assert(seenMethods.hasKey("EXPLOSIVE"));
+    Test.assert(seenMethods.hasKey("ISOKINETIC"));
+    return true;
+}
+
+(:test)
+function testWorkoutEngineApplySetOutcomeByMethod(logger) {
+    var engine = new EGYMWorkoutEngine();
+    var state = {
+        :setCount => 0,
+        :qualityTotal => 0,
+        :qualityCount => 0,
+        :wattTotal => 0,
+        :wattCount => 0,
+        :sessionTotalKg => 0,
+        :lastReps => 0,
+        :lastWorkload => 0
+    };
+
+    // NEGATIVE -> quality scales workload.
+    engine.applySetOutcome(state, "NEGATIVE", 85, 60, "12");
+    Test.assertEqual(1, state[:setCount]);
+    Test.assertEqual(85, state[:qualityTotal]);
+    Test.assertEqual(1, state[:qualityCount]);
+    Test.assertEqual(612, state[:lastWorkload]);
+    Test.assertEqual(612, state[:sessionTotalKg]);
+
+    // EXPLOSIVE -> workload ignores quality (factor=1.0), watt stats increase.
+    engine.applySetOutcome(state, "EXPLOSIVE", 320, 80, "2x6");
+    Test.assertEqual(2, state[:setCount]);
+    Test.assertEqual(320, state[:wattTotal]);
+    Test.assertEqual(1, state[:wattCount]);
+    Test.assertEqual(12, state[:lastReps]);
+    Test.assertEqual(960, state[:lastWorkload]);
+    Test.assertEqual(1572, state[:sessionTotalKg]);
+
+    // ISOKINETIC -> same scaling rule as non-explosive profiles.
+    engine.applySetOutcome(state, "ISOKINETIC", 70, 50, "2x8");
+    Test.assertEqual(3, state[:setCount]);
+    Test.assertEqual(155, state[:qualityTotal]);
+    Test.assertEqual(2, state[:qualityCount]);
+    Test.assertEqual(16, state[:lastReps]);
+    Test.assertEqual(560, state[:lastWorkload]);
+    Test.assertEqual(2132, state[:sessionTotalKg]);
+    return true;
+}
+
+(:test)
+function testWorkoutEngineClampAndParseHelpers(logger) {
+    var engine = new EGYMWorkoutEngine();
+
+    Test.assertEqual(100, engine.clampQualityAfterDelta(95, 5, false, 0, 100, 9999));
+    Test.assertEqual(0, engine.clampQualityAfterDelta(3, -10, false, 0, 100, 9999));
+    Test.assertEqual(9999, engine.clampQualityAfterDelta(9990, 30, true, 0, 100, 9999));
+
+    Test.assertEqual(16, engine.parseTerm("2x8"));
+    Test.assertEqual(16, engine.parseTerm("2X8"));
+    Test.assertEqual(15, engine.parseTerm("3*5"));
+    Test.assertEqual(0, engine.parseTerm("abc"));
+    Test.assertEqual(30, engine.parseReps("2x10+2x5"));
+    return true;
+}
+
+(:test)
 function testViewParseHelpers(logger) {
     var view = new EGYMView();
 

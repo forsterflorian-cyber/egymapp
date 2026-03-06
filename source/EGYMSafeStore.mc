@@ -55,6 +55,32 @@ class EGYMSafeStore {
         return false;
     }
 
+    // Session checkpoint helpers
+    static function saveCheckpoint(data as Dictionary?) as Boolean {
+        if (data == null) {
+            return false;
+        }
+        return setStorageValue(EGYMKeys.SESSION_CHECKPOINT, data);
+    }
+
+    static function loadCheckpoint() as Dictionary? {
+        var raw = getStorageValue(EGYMKeys.SESSION_CHECKPOINT);
+        if (!(raw instanceof Dictionary)) {
+            return null;
+        }
+
+        var checkpoint = raw as Dictionary;
+        return isValidCheckpoint(checkpoint) ? checkpoint : null;
+    }
+
+    static function clearCheckpoint() as Boolean {
+        return deleteStorageValue(EGYMKeys.SESSION_CHECKPOINT);
+    }
+
+    static function hasCheckpoint() as Boolean {
+        return loadCheckpoint() != null;
+    }
+
     static function deleteStorageValue(key as String) as Boolean {
         try {
             Storage.deleteValue(key);
@@ -79,6 +105,18 @@ class EGYMSafeStore {
             "storageReadErrors" => _storageReadErrors,
             "storageWriteErrors" => _storageWriteErrors
         };
+    }
+
+    private static function isValidCheckpoint(checkpoint as Dictionary) as Boolean {
+        return checkpoint.hasKey("version") &&
+            checkpoint.hasKey("phase") &&
+            checkpoint.hasKey("index") &&
+            checkpoint.hasKey("round") &&
+            checkpoint.hasKey("setCount") &&
+            checkpoint.hasKey("sessionTotalKg") &&
+            checkpoint.hasKey("zirkel") &&
+            checkpoint.hasKey("activeProg") &&
+            checkpoint.hasKey("timestampMs");
     }
 
     // Typed convenience helpers with caller-provided fallbacks.

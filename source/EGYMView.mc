@@ -47,6 +47,7 @@ class EGYMView extends WatchUi.View {
     // Managers
     var sm as EGYMSessionManager = new EGYMSessionManager();
     var drawer as EGYMViewDrawer? = null;
+    var workoutEngine as EGYMWorkoutEngine = new EGYMWorkoutEngine();
 
     // Workout state
     var currentPhase as Number = PHASE_EXERCISE;
@@ -93,6 +94,17 @@ class EGYMView extends WatchUi.View {
     // Timer
     var refreshTimer as Timer.Timer? = null;
     private var _tickCount as Number = 0;
+    private var _checkpointTickSeconds as Number = 0;
+    private var _setCalcState as Dictionary = {
+        :setCount => 0,
+        :qualityTotal => 0,
+        :qualityCount => 0,
+        :wattTotal => 0,
+        :wattCount => 0,
+        :sessionTotalKg => 0,
+        :lastReps => 0,
+        :lastWorkload => 0
+    };
 
     // Cached UI strings (loaded once in onShow)
     var _stringsLoaded as Boolean = false;
@@ -202,8 +214,8 @@ class EGYMView extends WatchUi.View {
                     var lastSync = EGYMSafeStore.getStorageNumber(key + "_lastSync", 0);
 
                     if (propNum != lastSync) {
-                        EGYMSafeStore.setStorageValue(key, propNum);
-                        EGYMSafeStore.setStorageValue(key + "_lastSync", propNum);
+                        safeStoreSet(key, propNum, "sync getSavedValue");
+                        safeStoreSet(key + "_lastSync", propNum, "sync getSavedValue lastSync");
                         return propNum;
                     }
                     return storageNum > 0 ? storageNum : propNum;
@@ -227,15 +239,17 @@ class EGYMView extends WatchUi.View {
         var oldNum = EGYMSafeStore.getStorageNumber(key, 0);
 
         if (force || newValue > oldNum) {
-            EGYMSafeStore.setStorageValue(key, newValue);
+            safeStoreSet(key, newValue, "setSavedValue");
 
             if (!isWatt && newValue != oldNum) {
                 saveRMHistory(cleanName, newValue);
             }
 
             if (isKnownPropertyKey(key)) {
-                EGYMSafeStore.setPropertyValue(key, newValue);
-                EGYMSafeStore.setStorageValue(key + "_lastSync", newValue);
+                if (!EGYMSafeStore.setPropertyValue(key, newValue)) {
+                    logViewIssue("property write failed: " + key);
+                }
+                safeStoreSet(key + "_lastSync", newValue, "setSavedValue lastSync");
             }
         }
     }
@@ -254,55 +268,29 @@ class EGYMView extends WatchUi.View {
     function calcTargetWeight(exName as String) as Number {
         var prog = getActiveProg();
         var rm = getSavedValue(exName, false);
-        if (rm <= 0) {
-            return 0;
-        }
         var factorBasis = getActiveFactorBasis(exName, prog);
-        if (factorBasis <= 0) {
-            return 0;
-        }
-        return Math.round((rm * factorBasis) / (EGYMConfig.LEARNED_FACTOR_SCALE * 1.0)).toNumber();
+        return workoutEngine.computeTargetWeight(rm, factorBasis);
     }
 
     private function getBaseFactorBasis(prog as Dictionary) as Number {
-        var factor = EGYMConfig.getProgramIntensityFactor(prog);
-        if (factor <= 0.0) {
-            return 0;
-        }
-        return clampLearnedFactor(
-            Math.round(factor * (EGYMConfig.LEARNED_FACTOR_SCALE * 1.0)).toNumber()
-        );
+        return workoutEngine.getBaseFactorBasis(prog);
     }
 
     private function getLearnedFactorKey(exName as String, prog as Dictionary) as String {
-        var key = EGYMKeys.LEARNED_FACTOR_PREFIX +
-            cleanExName(exName) + "_" +
-            EGYMConfig.getProgramPrefix(prog) + "_" +
-            EGYMConfig.getProgramMethodKey(prog) + "_" +
-            getBaseFactorBasis(prog).toString();
-
-        if (_learnedFactorGeneration > 0) {
-            key += "_g" + _learnedFactorGeneration.toString();
-        }
-        return key;
+        var baseFactorBasis = getBaseFactorBasis(prog);
+        return workoutEngine.buildLearnedFactorKey(
+            cleanExName(exName),
+            EGYMConfig.getProgramPrefix(prog),
+            EGYMConfig.getProgramMethodKey(prog),
+            baseFactorBasis,
+            _learnedFactorGeneration
+        );
     }
 
     private function getActiveFactorBasis(exName as String, prog as Dictionary) as Number {
+        var baseFactorBasis = getBaseFactorBasis(prog);
         var learned = EGYMSafeStore.getStorageNumber(getLearnedFactorKey(exName, prog), 0);
-        if (learned > 0) {
-            return clampLearnedFactor(learned);
-        }
-        return getBaseFactorBasis(prog);
-    }
-
-    private function clampLearnedFactor(factorBasis as Number) as Number {
-        if (factorBasis < EGYMConfig.MIN_LEARNED_FACTOR) {
-            return EGYMConfig.MIN_LEARNED_FACTOR;
-        }
-        if (factorBasis > EGYMConfig.MAX_LEARNED_FACTOR) {
-            return EGYMConfig.MAX_LEARNED_FACTOR;
-        }
-        return factorBasis;
+        return workoutEngine.resolveActiveFactorBasis(baseFactorBasis, learned);
     }
 
     private function maybeLearnWeightFactor(exName as String, prog as Dictionary) as Void {
@@ -316,28 +304,19 @@ class EGYMView extends WatchUi.View {
         }
 
         var suggestedWeight = calcTargetWeight(exName);
-        if (currentWeight == suggestedWeight) {
+        var key = getLearnedFactorKey(exName, prog);
+        var storedBasis = EGYMSafeStore.getStorageNumber(key, 0);
+        var newBasis = workoutEngine.computeLearnedFactorUpdate(
+            rm,
+            currentWeight,
+            suggestedWeight,
+            storedBasis
+        );
+        if (newBasis == null) {
             return;
         }
 
-        var observedBasis = Math.round(
-            (currentWeight * (EGYMConfig.LEARNED_FACTOR_SCALE * 1.0)) / rm
-        ).toNumber();
-        observedBasis = clampLearnedFactor(observedBasis);
-
-        var key = getLearnedFactorKey(exName, prog);
-        var storedBasis = EGYMSafeStore.getStorageNumber(key, 0);
-        var newBasis = observedBasis;
-
-        if (storedBasis > 0) {
-            storedBasis = clampLearnedFactor(storedBasis);
-            newBasis = Math.round(
-                ((storedBasis * 3) + observedBasis) / 4.0
-            ).toNumber();
-            newBasis = clampLearnedFactor(newBasis);
-        }
-
-        EGYMSafeStore.setStorageValue(key, newBasis);
+        safeStoreSet(key, newBasis as Number, "learnedFactor");
     }
 
     // ========================================================
@@ -374,6 +353,7 @@ class EGYMView extends WatchUi.View {
             loadCachedStrings();
         }
         refreshLabels();
+        _checkpointTickSeconds = 0;
 
         if (refreshTimer == null) {
             refreshTimer = new Timer.Timer();
@@ -409,6 +389,12 @@ class EGYMView extends WatchUi.View {
     }
 
     function tick() as Void {
+        _checkpointTickSeconds += 1;
+        if (_checkpointTickSeconds >= 30) {
+            _checkpointTickSeconds = 0;
+            persistSessionCheckpoint("periodic");
+        }
+
         _tickCount = (_tickCount + 1) % 2;
         if (currentPhase == PHASE_BREAK || isAskingForNewRound ||
             isShowingSuccess || isShowingDiscarded || _tickCount == 0) {
@@ -420,27 +406,35 @@ class EGYMView extends WatchUi.View {
     // PROGRAM MANAGEMENT
     // ========================================================
 
-    function updateProgram(newIndex as Number) as Void {
+    function updateProgram(newIndex as Number) as Boolean {
         activeProg = newIndex;
 
         if (sm.isRecording()) {
-            EGYMSafeStore.setPropertyValue(EGYMKeys.ACTIVE_PROGRAM, newIndex);
+            if (!EGYMSafeStore.setPropertyValue(EGYMKeys.ACTIVE_PROGRAM, newIndex)) {
+                logViewIssue("property write failed: ACTIVE_PROGRAM");
+            }
             initExercisePhase();
             refreshLabels();
             WatchUi.requestUpdate();
-            return;
+            return true;
         }
 
         resetSessionState();
 
-        EGYMSafeStore.setPropertyValue(EGYMKeys.ACTIVE_PROGRAM, newIndex);
+        if (!EGYMSafeStore.setPropertyValue(EGYMKeys.ACTIVE_PROGRAM, newIndex)) {
+            logViewIssue("property write failed: ACTIVE_PROGRAM");
+        }
 
         sm.cleanup();
-        sm.createAndStart();
+        if (!sm.createAndStart()) {
+            logViewIssue("createAndStart failed.");
+            return false;
+        }
 
         initExercisePhase();
         refreshLabels();
         WatchUi.requestUpdate();
+        return true;
     }
 
     function getActiveProg() as Dictionary {
@@ -523,13 +517,14 @@ class EGYMView extends WatchUi.View {
     }
 
     function changeQuality(delta as Number) as Void {
-        qualityValue += delta;
-        var maxVal = isExplonic(getActiveProg()) ? MAX_WATT : MAX_QUALITY;
-        if (qualityValue < MIN_QUALITY) {
-            qualityValue = MIN_QUALITY;
-        } else if (qualityValue > maxVal) {
-            qualityValue = maxVal;
-        }
+        qualityValue = workoutEngine.clampQualityAfterDelta(
+            qualityValue,
+            delta,
+            isExplonic(getActiveProg()),
+            MIN_QUALITY,
+            MAX_QUALITY,
+            MAX_WATT
+        );
         WatchUi.requestUpdate();
     }
 
@@ -622,6 +617,7 @@ class EGYMView extends WatchUi.View {
                 recStr
             );
             if (saved) {
+                EGYMSafeStore.clearCheckpoint();
                 if (saveFlow) {
                     saveCompletedFreeflow();
                 }
@@ -655,6 +651,7 @@ class EGYMView extends WatchUi.View {
 
     function discardSession() as Void {
         sm.discard();
+        EGYMSafeStore.clearCheckpoint();
         sessionTotalKg = 0;
         sessionRecords = [] as Array<Dictionary>;
         sessionSetCount = 0;
@@ -704,20 +701,40 @@ class EGYMView extends WatchUi.View {
     // FIT DATA PROCESSING
     // ========================================================
 
+    private function syncSetCalcStateFromView() as Void {
+        _setCalcState[:setCount] = sessionSetCount;
+        _setCalcState[:qualityTotal] = _sessionQualityTotal;
+        _setCalcState[:qualityCount] = _sessionQualityCount;
+        _setCalcState[:wattTotal] = _sessionWattTotal;
+        _setCalcState[:wattCount] = _sessionWattCount;
+        _setCalcState[:sessionTotalKg] = sessionTotalKg;
+    }
+
+    private function syncViewStateFromSetCalcState() as Void {
+        sessionSetCount = _setCalcState[:setCount] as Number;
+        _sessionQualityTotal = _setCalcState[:qualityTotal] as Number;
+        _sessionQualityCount = _setCalcState[:qualityCount] as Number;
+        _sessionWattTotal = _setCalcState[:wattTotal] as Number;
+        _sessionWattCount = _setCalcState[:wattCount] as Number;
+        sessionTotalKg = _setCalcState[:sessionTotalKg] as Number;
+    }
+
     function processEndOfSet() as Void {
         var prog = getActiveProg();
-        var isExp = isExplonic(prog);
+        var methodKey = EGYMConfig.getProgramMethodKey(prog);
+        var isExp = workoutEngine.isExplosiveMethod(methodKey);
         var exName = safeGetExercise(index);
         if (exName == null) { return; }
 
-        sessionSetCount += 1;
-        if (isExp) {
-            _sessionWattTotal += qualityValue;
-            _sessionWattCount += 1;
-        } else {
-            _sessionQualityTotal += qualityValue;
-            _sessionQualityCount += 1;
-        }
+        syncSetCalcStateFromView();
+        workoutEngine.applySetOutcome(
+            _setCalcState,
+            methodKey,
+            qualityValue,
+            currentWeight,
+            EGYMConfig.getProgramRepsSpec(prog)
+        );
+        syncViewStateFromSetCalcState();
 
         maybeLearnWeightFactor(exName, prog);
 
@@ -732,12 +749,11 @@ class EGYMView extends WatchUi.View {
             }
         }
 
-        var totalReps = parseReps(EGYMConfig.getProgramRepsSpec(prog));
-        var factor = isExp ? 1.0 : qualityValue / 100.0;
-        var currentWorkload = (currentWeight * factor * totalReps).toNumber();
-        sessionTotalKg += currentWorkload;
+        var totalReps = _setCalcState[:lastReps] as Number;
+        var currentWorkload = _setCalcState[:lastWorkload] as Number;
 
         sm.writeLapData(fitSafeString(exDisplayName(exName)), currentWorkload, totalReps, currentWeight, qualityValue);
+        persistSessionCheckpoint("set_complete");
     }
 
     function updateRecordsField() as Void {
@@ -780,6 +796,292 @@ class EGYMView extends WatchUi.View {
             sessionRecords.size() > 0;
     }
 
+    function persistSessionCheckpoint(reason as String) as Boolean {
+        if (!sm.hasSession() && !hasWorkoutProgress()) {
+            return true;
+        }
+
+        var payload = buildCheckpointPayload(reason);
+        var saved = EGYMSafeStore.saveCheckpoint(payload);
+        if (!saved) {
+            logViewIssue("checkpoint save failed: " + reason);
+        }
+        return saved;
+    }
+
+    function emergencyStopAndSave() as Boolean {
+        persistSessionCheckpoint("app_stop");
+
+        if (!sm.hasSession() || !hasWorkoutProgress()) {
+            return false;
+        }
+
+        var prog = getActiveProg();
+        var saved = sm.stopAndSave(
+            sessionTotalKg,
+            progDisplayName(prog),
+            getSessionAverageFitValue(),
+            methodDisplayName(prog),
+            buildRecordsString()
+        );
+
+        if (saved) {
+            EGYMSafeStore.clearCheckpoint();
+        }
+
+        return saved;
+    }
+
+    function restoreFromCheckpoint(checkpoint as Dictionary) as Boolean {
+        if (checkpoint == null) {
+            return false;
+        }
+
+        var rawZirkel = checkpoint["zirkel"];
+        if (!(rawZirkel instanceof Array)) {
+            return false;
+        }
+
+        var restoredZirkel = [] as Array<String>;
+        var zArr = rawZirkel as Array;
+        for (var z = 0; z < zArr.size(); z++) {
+            if (zArr[z] instanceof String) {
+                restoredZirkel.add(zArr[z] as String);
+            }
+        }
+
+        var restoredIndividual = EGYMSafeStore.toBool(checkpoint["isIndividualMode"], false);
+        if (!restoredIndividual && restoredZirkel.size() == 0) {
+            return false;
+        }
+
+        var programs = EGYMConfig.getActivePrograms();
+        var restoredProg = EGYMSafeStore.toNumber(checkpoint["activeProg"], 0);
+        if (restoredProg < 0 || restoredProg >= programs.size()) {
+            restoredProg = 0;
+        }
+
+        sm.cleanup();
+        resetSessionState();
+
+        activeProg = restoredProg;
+        if (!EGYMSafeStore.setPropertyValue(EGYMKeys.ACTIVE_PROGRAM, activeProg)) {
+            logViewIssue("restore checkpoint: ACTIVE_PROGRAM property write failed.");
+        }
+
+        if (!sm.createAndStart()) {
+            logViewIssue("restore checkpoint failed: createAndStart failed.");
+            return false;
+        }
+
+        zirkel = restoredZirkel;
+        isIndividualMode = restoredIndividual;
+        isTestModeActive = EGYMSafeStore.toBool(checkpoint["isTestModeActive"], false);
+
+        currentPhase = EGYMSafeStore.toNumber(checkpoint["phase"], PHASE_EXERCISE);
+        if (currentPhase != PHASE_EXERCISE &&
+            currentPhase != PHASE_ADJUST &&
+            currentPhase != PHASE_BREAK) {
+            currentPhase = PHASE_EXERCISE;
+        }
+
+        index = EGYMSafeStore.toNumber(checkpoint["index"], 0);
+        if (index < 0) {
+            index = 0;
+        }
+        if (zirkel.size() > 0 && index >= zirkel.size()) {
+            index = zirkel.size() - 1;
+        }
+
+        currentRound = EGYMSafeStore.toNumber(checkpoint["round"], 1);
+        if (currentRound < 1) {
+            currentRound = 1;
+        }
+
+        currentWeight = EGYMSafeStore.toNumber(checkpoint["currentWeight"], 0);
+        if (currentWeight < 0) {
+            currentWeight = 0;
+        }
+
+        qualityValue = EGYMSafeStore.toNumber(checkpoint["qualityValue"], 100);
+        if (qualityValue < MIN_QUALITY) {
+            qualityValue = MIN_QUALITY;
+        }
+
+        sessionSetCount = EGYMSafeStore.toNumber(checkpoint["setCount"], 0);
+        if (sessionSetCount < 0) {
+            sessionSetCount = 0;
+        }
+
+        sessionTotalKg = EGYMSafeStore.toNumber(checkpoint["sessionTotalKg"], 0);
+        if (sessionTotalKg < 0) {
+            sessionTotalKg = 0;
+        }
+
+        finalCalories = EGYMSafeStore.toNumber(checkpoint["finalCalories"], 0);
+        if (finalCalories < 0) {
+            finalCalories = 0;
+        }
+
+        _sessionQualityTotal = EGYMSafeStore.toNumber(checkpoint["qualityTotal"], 0);
+        if (_sessionQualityTotal < 0) {
+            _sessionQualityTotal = 0;
+        }
+        _sessionQualityCount = EGYMSafeStore.toNumber(checkpoint["qualityCount"], 0);
+        if (_sessionQualityCount < 0) {
+            _sessionQualityCount = 0;
+        }
+
+        _sessionWattTotal = EGYMSafeStore.toNumber(checkpoint["wattTotal"], 0);
+        if (_sessionWattTotal < 0) {
+            _sessionWattTotal = 0;
+        }
+        _sessionWattCount = EGYMSafeStore.toNumber(checkpoint["wattCount"], 0);
+        if (_sessionWattCount < 0) {
+            _sessionWattCount = 0;
+        }
+
+        sessionRecords = restoreSessionRecordsFromCheckpoint(checkpoint["records"]);
+        _recordScrollIndex = EGYMSafeStore.toNumber(checkpoint["recordScrollIndex"], 0);
+        if (_recordScrollIndex < 0) {
+            _recordScrollIndex = 0;
+        }
+        if (_recordScrollIndex >= sessionRecords.size()) {
+            _recordScrollIndex = sessionRecords.size() > 0 ? sessionRecords.size() - 1 : 0;
+        }
+
+        var breakElapsedSec = EGYMSafeStore.toNumber(checkpoint["breakElapsedSec"], 0);
+        if (breakElapsedSec < 0) {
+            breakElapsedSec = 0;
+        }
+        if (currentPhase == PHASE_BREAK) {
+            breakStartTime = System.getTimer() - (breakElapsedSec * 1000);
+            if (breakStartTime < 0) {
+                breakStartTime = 0;
+            }
+        } else {
+            breakStartTime = 0;
+        }
+
+        refreshLabels();
+        if (drawer != null) {
+            drawer.resetCaches();
+        }
+
+        persistSessionCheckpoint("rehydrated");
+        WatchUi.requestUpdate();
+        return true;
+    }
+
+    private function buildCheckpointPayload(reason as String) as Dictionary {
+        var payload = {} as Dictionary;
+        payload["version"] = 1;
+        payload["reason"] = reason;
+        payload["timestampMs"] = System.getTimer();
+        payload["phase"] = currentPhase;
+        payload["index"] = index;
+        payload["round"] = currentRound;
+        payload["activeProg"] = activeProg;
+        payload["isIndividualMode"] = isIndividualMode;
+        payload["isTestModeActive"] = isTestModeActive;
+        payload["currentWeight"] = currentWeight;
+        payload["qualityValue"] = qualityValue;
+        payload["setCount"] = sessionSetCount;
+        payload["sessionTotalKg"] = sessionTotalKg;
+        payload["finalCalories"] = finalCalories;
+        payload["qualityTotal"] = _sessionQualityTotal;
+        payload["qualityCount"] = _sessionQualityCount;
+        payload["wattTotal"] = _sessionWattTotal;
+        payload["wattCount"] = _sessionWattCount;
+        payload["recordScrollIndex"] = _recordScrollIndex;
+        payload["zirkel"] = copyZirkelForCheckpoint();
+        payload["records"] = copySessionRecordsForCheckpoint();
+
+        var breakElapsedSec = 0;
+        if (currentPhase == PHASE_BREAK && breakStartTime > 0) {
+            breakElapsedSec = ((System.getTimer() - breakStartTime) / 1000).toNumber();
+            if (breakElapsedSec < 0) {
+                breakElapsedSec = 0;
+            }
+        }
+        payload["breakElapsedSec"] = breakElapsedSec;
+
+        return payload;
+    }
+
+    private function copyZirkelForCheckpoint() as Array<String> {
+        var copy = [] as Array<String>;
+        for (var i = 0; i < zirkel.size(); i++) {
+            copy.add(zirkel[i]);
+        }
+        return copy;
+    }
+
+    private function copySessionRecordsForCheckpoint() as Array<Dictionary> {
+        var copy = [] as Array<Dictionary>;
+        for (var i = 0; i < sessionRecords.size(); i++) {
+            var rec = sessionRecords[i] as Dictionary;
+            if (!(rec[:n] instanceof String) || !(rec[:t] instanceof String)) {
+                continue;
+            }
+
+            var recordEntry = {} as Dictionary;
+            recordEntry["n"] = rec[:n] as String;
+            recordEntry["d"] = EGYMSafeStore.toNumber(rec[:d], 0);
+            recordEntry["t"] = rec[:t] as String;
+            copy.add(recordEntry);
+        }
+        return copy;
+    }
+
+    private function restoreSessionRecordsFromCheckpoint(raw) as Array<Dictionary> {
+        var restored = [] as Array<Dictionary>;
+        if (!(raw instanceof Array)) {
+            return restored;
+        }
+
+        var list = raw as Array;
+        for (var i = 0; i < list.size(); i++) {
+            if (!(list[i] instanceof Dictionary)) {
+                continue;
+            }
+
+            var rec = list[i] as Dictionary;
+            var name = null as String?;
+            var typ = null as String?;
+            var delta = 0;
+
+            if (rec.hasKey("n") && rec["n"] instanceof String) {
+                name = rec["n"] as String;
+            } else if (rec.hasKey(:n) && rec[:n] instanceof String) {
+                name = rec[:n] as String;
+            }
+
+            if (rec.hasKey("t") && rec["t"] instanceof String) {
+                typ = rec["t"] as String;
+            } else if (rec.hasKey(:t) && rec[:t] instanceof String) {
+                typ = rec[:t] as String;
+            }
+
+            if (rec.hasKey("d")) {
+                delta = EGYMSafeStore.toNumber(rec["d"], 0);
+            } else if (rec.hasKey(:d)) {
+                delta = EGYMSafeStore.toNumber(rec[:d], 0);
+            }
+
+            if (name == null || typ == null) {
+                continue;
+            }
+
+            restored.add({
+                :n => name as String,
+                :d => delta,
+                :t => typ as String
+            });
+        }
+        return restored;
+    }
+
     // ========================================================
     private function getCompletedFreeflow() as Array<String> {
         var completed = [] as Array<String>;
@@ -813,7 +1115,7 @@ class EGYMView extends WatchUi.View {
         if (completed.size() < 3) {
             return;
         }
-        EGYMSafeStore.setStorageValue(EGYMKeys.LAST_SAVED_FREEFLOW, completed);
+        safeStoreSet(EGYMKeys.LAST_SAVED_FREEFLOW, completed, "saveCompletedFreeflow");
     }
 
     // REP PARSING
@@ -821,38 +1123,11 @@ class EGYMView extends WatchUi.View {
 
     //! Parse specs like "2x8+10" without per-character allocations.
     function parseReps(repsString as String?) as Number {
-        if (repsString == null || repsString.length() == 0) {
-            return 0;
-        }
-        var total = 0;
-        var remaining = repsString;
-        var plusIdx = remaining.find("+");
-
-        while (plusIdx != null) {
-            total += parseTerm(remaining.substring(0, plusIdx));
-            remaining = remaining.substring(plusIdx + 1, remaining.length());
-            plusIdx = remaining.find("+");
-        }
-        total += parseTerm(remaining);
-        return total;
+        return workoutEngine.parseReps(repsString);
     }
 
     function parseTerm(term as String?) as Number {
-        var trimmed = EGYMSafeStore.trimWhitespace(term);
-        if (trimmed.length() == 0) { return 0; }
-
-        var mulPos = trimmed.find("*");
-        if (mulPos == null) { mulPos = trimmed.find("x"); }
-        if (mulPos == null) { mulPos = trimmed.find("X"); }
-        if (mulPos != null) {
-            var leftStr = EGYMSafeStore.trimWhitespace(trimmed.substring(0, mulPos));
-            var rightStr = EGYMSafeStore.trimWhitespace(trimmed.substring(mulPos + 1, trimmed.length()));
-            var left = leftStr.toNumber();
-            var right = rightStr.toNumber();
-            if (left != null && right != null) { return left * right; }
-        }
-        var val = trimmed.toNumber();
-        return val != null ? val : 0;
+        return workoutEngine.parseTerm(term);
     }
 
     // ========================================================
@@ -1186,6 +1461,15 @@ class EGYMView extends WatchUi.View {
         _cachedBtnW = 0;
         isShowingDiscarded = false;
         _pendingProgChange = -1;
+        _checkpointTickSeconds = 0;
+        _setCalcState[:setCount] = 0;
+        _setCalcState[:qualityTotal] = 0;
+        _setCalcState[:qualityCount] = 0;
+        _setCalcState[:wattTotal] = 0;
+        _setCalcState[:wattCount] = 0;
+        _setCalcState[:sessionTotalKg] = 0;
+        _setCalcState[:lastReps] = 0;
+        _setCalcState[:lastWorkload] = 0;
         if (drawer != null) { drawer.resetCaches(); }
     }
 
@@ -1283,11 +1567,11 @@ class EGYMView extends WatchUi.View {
     function updateSessionStats() as Void {
         var sessions = EGYMSafeStore.getStorageNumber(EGYMKeys.STAT_SESSIONS, 0);
         if (sessions < 0) { sessions = 0; }
-        EGYMSafeStore.setStorageValue(EGYMKeys.STAT_SESSIONS, sessions + 1);
+        safeStoreSet(EGYMKeys.STAT_SESSIONS, sessions + 1, "updateSessionStats sessions");
 
         var totalVolume = EGYMSafeStore.getStorageNumber(EGYMKeys.STAT_TOTAL_VOLUME, 0);
         if (totalVolume < 0) { totalVolume = 0; }
-        EGYMSafeStore.setStorageValue(EGYMKeys.STAT_TOTAL_VOLUME, totalVolume + sessionTotalKg);
+        safeStoreSet(EGYMKeys.STAT_TOTAL_VOLUME, totalVolume + sessionTotalKg, "updateSessionStats totalVolume");
 
         var today = Time.today().value() / 86400;
         var lastDay = EGYMSafeStore.getStorageNumber(EGYMKeys.STAT_LAST_DAY, 0);
@@ -1302,9 +1586,9 @@ class EGYMView extends WatchUi.View {
             streak = 1;
         }
 
-        EGYMSafeStore.setStorageValue(EGYMKeys.STAT_STREAK, streak);
-        EGYMSafeStore.setStorageValue(EGYMKeys.STAT_LAST_DAY, today);
-        EGYMSafeStore.setStorageValue(EGYMKeys.LAST_SESSION_VOLUME, sessionTotalKg);
+        safeStoreSet(EGYMKeys.STAT_STREAK, streak, "updateSessionStats streak");
+        safeStoreSet(EGYMKeys.STAT_LAST_DAY, today, "updateSessionStats lastDay");
+        safeStoreSet(EGYMKeys.LAST_SESSION_VOLUME, sessionTotalKg, "updateSessionStats lastSessionVolume");
     }
 
     function saveRMHistory(cleanName as String, newRM as Number) as Void {
@@ -1336,7 +1620,7 @@ class EGYMView extends WatchUi.View {
             }
             arr = trimmed;
         }
-        EGYMSafeStore.setStorageValue(key, arr);
+        safeStoreSet(key, arr, "saveRMHistory");
     }
 
     function scrollRecords(delta as Number) as Void {
@@ -1396,8 +1680,12 @@ class EGYMView extends WatchUi.View {
             return;
         }
 
-        updateProgram(newIndex);
-        WatchUi.popView(WatchUi.SLIDE_DOWN);
+        if (updateProgram(newIndex)) {
+            WatchUi.popView(WatchUi.SLIDE_DOWN);
+        } else {
+            logViewIssue("Program change aborted: createAndStart failed.");
+            WatchUi.requestUpdate();
+        }
     }
 
 
@@ -1502,6 +1790,14 @@ class EGYMView extends WatchUi.View {
         }
 
         return _sSummaryTrend + ": " + signedPct + " " + _sSummaryTrendVsLast;
+    }
+
+    private function safeStoreSet(key as String, value, context as String) as Boolean {
+        var ok = EGYMSafeStore.setStorageValue(key, value);
+        if (!ok) {
+            logViewIssue("storage write failed (" + context + "): " + key);
+        }
+        return ok;
     }
 
     private function logViewIssue(message as String) as Void {
