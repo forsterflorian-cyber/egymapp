@@ -22,6 +22,13 @@ import Toybox.Math;
 //    - others:    workload = weight * (quality / 100) * reps
 // ============================================================
 class EGYMWorkoutEngine {
+    private const METHOD_EXPLOSIVE = "EXPLOSIVE";
+    private const KEY_SEPARATOR = "_";
+    private const KEY_GENERATION_SUFFIX = "_g";
+    private const TOKEN_PLUS = "+";
+    private const TOKEN_MUL = "*";
+    private const TOKEN_MUL_ALT_LOWER = "x";
+    private const TOKEN_MUL_ALT_UPPER = "X";
 
     function initialize() {
     }
@@ -54,13 +61,13 @@ class EGYMWorkoutEngine {
         generation as Number
     ) as String {
         var key = EGYMKeys.LEARNED_FACTOR_PREFIX +
-            cleanExerciseName + "_" +
-            progPrefix + "_" +
-            methodKey + "_" +
+            cleanExerciseName + KEY_SEPARATOR +
+            progPrefix + KEY_SEPARATOR +
+            methodKey + KEY_SEPARATOR +
             baseFactorBasis.toString();
 
         if (generation > 0) {
-            key += "_g" + generation.toString();
+            key += KEY_GENERATION_SUFFIX + generation.toString();
         }
         return key;
     }
@@ -128,7 +135,7 @@ class EGYMWorkoutEngine {
     }
 
     function isExplosiveMethod(methodKey as String) as Boolean {
-        return methodKey.equals("EXPLOSIVE");
+        return methodKey.equals(METHOD_EXPLOSIVE);
     }
 
     function parseReps(repsSpec as String?) as Number {
@@ -137,12 +144,12 @@ class EGYMWorkoutEngine {
         }
         var total = 0;
         var remaining = repsSpec;
-        var plusIdx = remaining.find("+");
+        var plusIdx = remaining.find(TOKEN_PLUS);
 
         while (plusIdx != null) {
             total += parseTerm(remaining.substring(0, plusIdx));
             remaining = remaining.substring(plusIdx + 1, remaining.length());
-            plusIdx = remaining.find("+");
+            plusIdx = remaining.find(TOKEN_PLUS);
         }
         total += parseTerm(remaining);
         return total;
@@ -154,9 +161,9 @@ class EGYMWorkoutEngine {
             return 0;
         }
 
-        var mulPos = trimmed.find("*");
-        if (mulPos == null) { mulPos = trimmed.find("x"); }
-        if (mulPos == null) { mulPos = trimmed.find("X"); }
+        var mulPos = trimmed.find(TOKEN_MUL);
+        if (mulPos == null) { mulPos = trimmed.find(TOKEN_MUL_ALT_LOWER); }
+        if (mulPos == null) { mulPos = trimmed.find(TOKEN_MUL_ALT_UPPER); }
         if (mulPos != null) {
             var leftStr = EGYMSafeStore.trimWhitespace(trimmed.substring(0, mulPos));
             var rightStr = EGYMSafeStore.trimWhitespace(trimmed.substring(mulPos + 1, trimmed.length()));
@@ -182,27 +189,27 @@ class EGYMWorkoutEngine {
         currentWeight as Number,
         repsSpec as String
     ) as Void {
-        var setCount = toNumber(state[:setCount], 0) + 1;
+        var setCount = coerceNumber(state[:setCount], 0) + 1;
         state[:setCount] = setCount;
 
         var isExplosive = isExplosiveMethod(methodKey);
         if (isExplosive) {
-            state[:wattTotal] = toNumber(state[:wattTotal], 0) + qualityValue;
-            state[:wattCount] = toNumber(state[:wattCount], 0) + 1;
+            state[:wattTotal] = coerceNumber(state[:wattTotal], 0) + qualityValue;
+            state[:wattCount] = coerceNumber(state[:wattCount], 0) + 1;
         } else {
-            state[:qualityTotal] = toNumber(state[:qualityTotal], 0) + qualityValue;
-            state[:qualityCount] = toNumber(state[:qualityCount], 0) + 1;
+            state[:qualityTotal] = coerceNumber(state[:qualityTotal], 0) + qualityValue;
+            state[:qualityCount] = coerceNumber(state[:qualityCount], 0) + 1;
         }
 
         var totalReps = parseReps(repsSpec);
         var factor = isExplosive ? 1.0 : qualityValue / 100.0;
         var workload = (currentWeight * factor * totalReps).toNumber();
-        state[:sessionTotalKg] = toNumber(state[:sessionTotalKg], 0) + workload;
+        state[:sessionTotalKg] = coerceNumber(state[:sessionTotalKg], 0) + workload;
         state[:lastReps] = totalReps;
         state[:lastWorkload] = workload;
     }
 
-    private function toNumber(raw, fallback as Number) as Number {
+    private function coerceNumber(raw, fallback as Number) as Number {
         if (raw == null) {
             return fallback;
         }

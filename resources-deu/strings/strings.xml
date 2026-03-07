@@ -80,6 +80,26 @@
     <string id="UISummaryTrend">Trend</string>
     <string id="UISummaryTrendVsLast">Aenderung gg. zuletzt</string>
     <string id="UISummaryTrendSame">wie zuletzt</string>
+    <string id="UIUnknown">Unbekannt</string>
+    <string id="UIUnitKg">kg</string>
+    <string id="UIUnitW">W</string>
+    <string id="UIUnitPercent">%</string>
+    <string id="UIUnitSeconds">s</string>
+    <string id="UIUnitKcal">kcal</string>
+    <string id="UIInstinctSet">SATZ</string>
+    <string id="UIInstinctRest">PAUSE</string>
+    <string id="UIInstinctDefaultProgress">1/1</string>
+    <string id="UIHeaderNoHr">--</string>
+    <string id="LogViewPrefix">[EGYM view] </string>
+    <string id="LogViewPropWriteFailed">property write failed: </string>
+    <string id="LogViewCreateAndStartFailed">createAndStart failed.</string>
+    <string id="LogViewUpdateStatsFailed">updateSessionStats failed.</string>
+    <string id="LogViewCheckpointSaveFailed">checkpoint save failed: </string>
+    <string id="LogViewRestoreCheckpointPropFailed">restore checkpoint: ACTIVE_PROGRAM property write failed.</string>
+    <string id="LogViewRestoreCheckpointCreateStartFailed">restore checkpoint failed: createAndStart failed.</string>
+    <string id="LogViewProgramChangeAborted">Program change aborted: createAndStart failed.</string>
+    <string id="LogViewStorageWriteFailedPrefix">storage write failed (</string>
+    <string id="LogViewStorageWriteFailedMid">): </string>
     <!-- Menu Strings -->
     <string id="UIStartTitleBasis">EGYM Basis</string>
     <string id="UIStartTitlePlus">EGYM+</string>

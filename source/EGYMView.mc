@@ -43,6 +43,12 @@ class EGYMView extends WatchUi.View {
     const PHASE_BREAK = 2;
     const IND_PICK_ADD = 0;
     const IND_PICK_REPLACE = 1;
+    const RECORD_TYPE_WATT = "W";
+    const RECORD_TYPE_RM = "RM";
+    const CHECKPOINT_REASON_PERIODIC = "periodic";
+    const CHECKPOINT_REASON_SET_COMPLETE = "set_complete";
+    const CHECKPOINT_REASON_APP_STOP = "app_stop";
+    const CHECKPOINT_REASON_REHYDRATED = "rehydrated";
 
     // Managers
     var sm as EGYMSessionManager = new EGYMSessionManager();
@@ -150,6 +156,35 @@ class EGYMView extends WatchUi.View {
     var _sSummaryTrend as String = "";
     var _sSummaryTrendVsLast as String = "";
     var _sSummaryTrendSame as String = "";
+    var _sUnknown as String = "";
+    var _sUnitKg as String = "";
+    var _sUnitKgSpaced as String = "";
+    var _sUnitW as String = "";
+    var _sUnitWSpaced as String = "";
+    var _sUnitPercent as String = "";
+    var _sUnitSeconds as String = "";
+    var _sUnitKcal as String = "";
+    var _sInstinctSet as String = "";
+    var _sInstinctRest as String = "";
+    var _sInstinctDefaultProgress as String = "";
+    var _sHeaderNoHr as String = "";
+    var _sLogPrefix as String = "";
+    var _sLogPropWriteFailed as String = "";
+    var _sLogCreateAndStartFailed as String = "";
+    var _sLogUpdateSessionStatsFailed as String = "";
+    var _sLogCheckpointSaveFailed as String = "";
+    var _sLogRestoreCheckpointPropFailed as String = "";
+    var _sLogRestoreCheckpointCreateStartFailed as String = "";
+    var _sLogProgramChangeAborted as String = "";
+    var _sLogStorageWriteFailedPrefix as String = "";
+    var _sLogStorageWriteFailedMid as String = "";
+    private var _enableViewLogs as Boolean = false;
+    private var _shortVibePattern as Array<Attention.VibeProfile> = [
+        new Attention.VibeProfile(50, 200)
+    ] as Array<Attention.VibeProfile>;
+    private var _longVibePattern as Array<Attention.VibeProfile> = [
+        new Attention.VibeProfile(100, 500)
+    ] as Array<Attention.VibeProfile>;
 
     // Cached per-phase labels
     var _cachedProgLabel as String = "";
@@ -166,7 +201,7 @@ class EGYMView extends WatchUi.View {
 
     // Name cache and property keys
     var _cleanNameCache as Dictionary<String, String> = {};
-    var _knownPropertyKeys as Dictionary<String, Boolean>? = null;
+    var _knownPropertyKeys as Array<String>? = null;
     var _knownExercisesCache as Array<String>? = null;
     var _pendingProgChange as Number = -1;
     // -- Screen Size 
@@ -184,7 +219,20 @@ class EGYMView extends WatchUi.View {
         if (app != null && app instanceof EGYMApp) {
             appVersion = (app as EGYMApp).getAppVersionTag();
         }
+        _enableViewLogs = shouldEnableSimulatorLogging();
         refreshLearnedCalibrationGeneration();
+    }
+
+    private function shouldEnableSimulatorLogging() as Boolean {
+        try {
+            var settings = System.getDeviceSettings();
+            if (settings != null && settings has :partNumber && settings.partNumber != null) {
+                var part = settings.partNumber.toString();
+                return part.find("sim") != null || part.find("SIM") != null;
+            }
+        } catch (ignored) {
+        }
+        return false;
     }
 
     function refreshLearnedCalibrationGeneration() as Void {
@@ -247,7 +295,7 @@ class EGYMView extends WatchUi.View {
 
             if (isKnownPropertyKey(key)) {
                 if (!EGYMSafeStore.setPropertyValue(key, newValue)) {
-                    logViewIssue("property write failed: " + key);
+                    logViewIssueWithSuffix(_sLogPropWriteFailed, key);
                 }
                 safeStoreSet(key + "_lastSync", newValue, "setSavedValue lastSync");
             }
@@ -392,7 +440,7 @@ class EGYMView extends WatchUi.View {
         _checkpointTickSeconds += 1;
         if (_checkpointTickSeconds >= 30) {
             _checkpointTickSeconds = 0;
-            persistSessionCheckpoint("periodic");
+            persistSessionCheckpoint(CHECKPOINT_REASON_PERIODIC);
         }
 
         _tickCount = (_tickCount + 1) % 2;
@@ -411,7 +459,7 @@ class EGYMView extends WatchUi.View {
 
         if (sm.isRecording()) {
             if (!EGYMSafeStore.setPropertyValue(EGYMKeys.ACTIVE_PROGRAM, newIndex)) {
-                logViewIssue("property write failed: ACTIVE_PROGRAM");
+                logViewIssueWithSuffix(_sLogPropWriteFailed, EGYMKeys.ACTIVE_PROGRAM);
             }
             initExercisePhase();
             refreshLabels();
@@ -422,12 +470,12 @@ class EGYMView extends WatchUi.View {
         resetSessionState();
 
         if (!EGYMSafeStore.setPropertyValue(EGYMKeys.ACTIVE_PROGRAM, newIndex)) {
-            logViewIssue("property write failed: ACTIVE_PROGRAM");
+            logViewIssueWithSuffix(_sLogPropWriteFailed, EGYMKeys.ACTIVE_PROGRAM);
         }
 
         sm.cleanup();
         if (!sm.createAndStart()) {
-            logViewIssue("createAndStart failed.");
+            logViewIssue(_sLogCreateAndStartFailed);
             return false;
         }
 
@@ -625,7 +673,7 @@ class EGYMView extends WatchUi.View {
                 try {
                     updateSessionStats();
                 } catch (e) {
-                    logViewIssue("updateSessionStats failed.");
+                    logViewIssue(_sLogUpdateSessionStatsFailed);
                 }
                 isShowingSuccess = true;
                 isShowingDiscarded = false;
@@ -742,7 +790,7 @@ class EGYMView extends WatchUi.View {
             var oldWatt = getSavedValue(exName, true);
             if (qualityValue > oldWatt) {
                 sessionRecords.add({
-                    :n => exName, :d => qualityValue - oldWatt, :t => "W",
+                    :n => exName, :d => qualityValue - oldWatt, :t => RECORD_TYPE_WATT,
                 });
                 setSavedValue(exName, true, qualityValue, false);
                 updateRecordsField();
@@ -753,7 +801,7 @@ class EGYMView extends WatchUi.View {
         var currentWorkload = _setCalcState[:lastWorkload] as Number;
 
         sm.writeLapData(fitSafeString(exDisplayName(exName)), currentWorkload, totalReps, currentWeight, qualityValue);
-        persistSessionCheckpoint("set_complete");
+        persistSessionCheckpoint(CHECKPOINT_REASON_SET_COMPLETE);
     }
 
     function updateRecordsField() as Void {
@@ -770,10 +818,10 @@ class EGYMView extends WatchUi.View {
                 continue;
             }
 
-            var unit = (rec[:t] as String).equals("W") ? "W" : "kg";
+            var unit = (rec[:t] as String).equals(RECORD_TYPE_WATT) ? _sUnitW : _sUnitKg;
             var localizedName = exDisplayName(rec[:n] as String);
             var name = truncate(localizedName, 14);
-            var deltaStr = rec[:d] != null ? rec[:d].toString() : "0";
+            var deltaStr = EGYMSafeStore.toNumber(rec[:d], 0).toString();
             var entry = name + "+" + deltaStr + unit;
             var separator = recStr.length() > 0 ? ";" : "";
             var next = recStr + separator + entry;
@@ -804,13 +852,13 @@ class EGYMView extends WatchUi.View {
         var payload = buildCheckpointPayload(reason);
         var saved = EGYMSafeStore.saveCheckpoint(payload);
         if (!saved) {
-            logViewIssue("checkpoint save failed: " + reason);
+            logViewIssueWithSuffix(_sLogCheckpointSaveFailed, reason);
         }
         return saved;
     }
 
     function emergencyStopAndSave() as Boolean {
-        persistSessionCheckpoint("app_stop");
+        persistSessionCheckpoint(CHECKPOINT_REASON_APP_STOP);
 
         if (!sm.hasSession() || !hasWorkoutProgress()) {
             return false;
@@ -832,7 +880,7 @@ class EGYMView extends WatchUi.View {
         return saved;
     }
 
-    function restoreFromCheckpoint(checkpoint as Dictionary) as Boolean {
+    function restoreFromCheckpoint(checkpoint as Dictionary?) as Boolean {
         if (checkpoint == null) {
             return false;
         }
@@ -866,11 +914,11 @@ class EGYMView extends WatchUi.View {
 
         activeProg = restoredProg;
         if (!EGYMSafeStore.setPropertyValue(EGYMKeys.ACTIVE_PROGRAM, activeProg)) {
-            logViewIssue("restore checkpoint: ACTIVE_PROGRAM property write failed.");
+            logViewIssue(_sLogRestoreCheckpointPropFailed);
         }
 
         if (!sm.createAndStart()) {
-            logViewIssue("restore checkpoint failed: createAndStart failed.");
+            logViewIssue(_sLogRestoreCheckpointCreateStartFailed);
             return false;
         }
 
@@ -968,7 +1016,7 @@ class EGYMView extends WatchUi.View {
             drawer.resetCaches();
         }
 
-        persistSessionCheckpoint("rehydrated");
+        persistSessionCheckpoint(CHECKPOINT_REASON_REHYDRATED);
         WatchUi.requestUpdate();
         return true;
     }
@@ -1154,7 +1202,7 @@ class EGYMView extends WatchUi.View {
         setSavedValue(exName, false, newWeight, true);
 
         if (newWeight > oldRM) {
-            sessionRecords.add({ :n => exName, :d => newWeight - oldRM, :t => "RM" });
+            sessionRecords.add({ :n => exName, :d => newWeight - oldRM, :t => RECORD_TYPE_RM });
             updateRecordsField();
         }
         isWaitingForTestConfirm = false;
@@ -1244,7 +1292,7 @@ class EGYMView extends WatchUi.View {
             var exKey = exercises[origIdx];
             var displayName = names[i] as String;
             var target = calcTargetWeight(exKey);
-            var sub = target > 0 ? target.toString() + " kg" : null;
+            var sub = target > 0 ? target.toString() + _sUnitKgSpaced : null;
             menu.addItem(new WatchUi.MenuItem(displayName, sub, "ind_ex_" + origIdx.toString(), {}));
         }
 
@@ -1428,6 +1476,31 @@ class EGYMView extends WatchUi.View {
         _sSummaryTrendVsLast = WatchUi.loadResource(Rez.Strings.UISummaryTrendVsLast);
         _sSummaryTrendSame = WatchUi.loadResource(Rez.Strings.UISummaryTrendSame);
         _sSummaryTrend = WatchUi.loadResource(Rez.Strings.UISummaryTrend);
+        _sUnknown = WatchUi.loadResource(Rez.Strings.UIUnknown);
+        _sUnitKg = WatchUi.loadResource(Rez.Strings.UIUnitKg);
+        _sUnitW = WatchUi.loadResource(Rez.Strings.UIUnitW);
+        _sUnitPercent = WatchUi.loadResource(Rez.Strings.UIUnitPercent);
+        _sUnitSeconds = WatchUi.loadResource(Rez.Strings.UIUnitSeconds);
+        _sUnitKcal = WatchUi.loadResource(Rez.Strings.UIUnitKcal);
+        _sInstinctSet = WatchUi.loadResource(Rez.Strings.UIInstinctSet);
+        _sInstinctRest = WatchUi.loadResource(Rez.Strings.UIInstinctRest);
+        _sInstinctDefaultProgress = WatchUi.loadResource(Rez.Strings.UIInstinctDefaultProgress);
+        _sHeaderNoHr = WatchUi.loadResource(Rez.Strings.UIHeaderNoHr);
+        _sUnitKgSpaced = " " + _sUnitKg;
+        _sUnitWSpaced = " " + _sUnitW;
+
+        if (_enableViewLogs) {
+            _sLogPrefix = WatchUi.loadResource(Rez.Strings.LogViewPrefix);
+            _sLogPropWriteFailed = WatchUi.loadResource(Rez.Strings.LogViewPropWriteFailed);
+            _sLogCreateAndStartFailed = WatchUi.loadResource(Rez.Strings.LogViewCreateAndStartFailed);
+            _sLogUpdateSessionStatsFailed = WatchUi.loadResource(Rez.Strings.LogViewUpdateStatsFailed);
+            _sLogCheckpointSaveFailed = WatchUi.loadResource(Rez.Strings.LogViewCheckpointSaveFailed);
+            _sLogRestoreCheckpointPropFailed = WatchUi.loadResource(Rez.Strings.LogViewRestoreCheckpointPropFailed);
+            _sLogRestoreCheckpointCreateStartFailed = WatchUi.loadResource(Rez.Strings.LogViewRestoreCheckpointCreateStartFailed);
+            _sLogProgramChangeAborted = WatchUi.loadResource(Rez.Strings.LogViewProgramChangeAborted);
+            _sLogStorageWriteFailedPrefix = WatchUi.loadResource(Rez.Strings.LogViewStorageWriteFailedPrefix);
+            _sLogStorageWriteFailedMid = WatchUi.loadResource(Rez.Strings.LogViewStorageWriteFailedMid);
+        }
     }
 
     function resetSessionState() as Void {
@@ -1501,7 +1574,11 @@ class EGYMView extends WatchUi.View {
     }
 
     function fitSafeString(str as String?) as String {
-        if (str == null) { return "Unknown"; }
+        if (str == null) {
+            return _sUnknown.length() > 0
+                ? _sUnknown
+                : WatchUi.loadResource(Rez.Strings.UIUnknown);
+        }
         return str.length() > 23 ? str.substring(0, 23) : str;
     }
 
@@ -1536,19 +1613,25 @@ class EGYMView extends WatchUi.View {
 
     function initKnownPropertyKeys() as Void {
         if (_knownPropertyKeys != null) { return; }
-        _knownPropertyKeys = {} as Dictionary<String, Boolean>;
+        _knownPropertyKeys = [] as Array<String>;
         var exercises = getKnownExercises();
         var prefixes = [EGYMKeys.RM_PREFIX, EGYMKeys.WATT_PREFIX];
         for (var i = 0; i < exercises.size(); i++) {
             for (var p = 0; p < prefixes.size(); p++) {
-                (_knownPropertyKeys as Dictionary<String, Boolean>).put(prefixes[p] + exercises[i], true);
+                (_knownPropertyKeys as Array<String>).add(prefixes[p] + exercises[i]);
             }
         }
     }
 
     function isKnownPropertyKey(key as String) as Boolean {
         initKnownPropertyKeys();
-        return (_knownPropertyKeys as Dictionary<String, Boolean>).hasKey(key);
+        var keys = _knownPropertyKeys as Array<String>;
+        for (var i = 0; i < keys.size(); i++) {
+            if (keys[i] == key) {
+                return true;
+            }
+        }
+        return false;
     }
 
     function getKnownExercises() as Array<String> {
@@ -1648,11 +1731,11 @@ class EGYMView extends WatchUi.View {
     }
 
     function vibrateShort() as Void {
-        if (Attention has :vibrate) { Attention.vibrate([new Attention.VibeProfile(50, 200)]); }
+        if (Attention has :vibrate) { Attention.vibrate(_shortVibePattern); }
     }
 
     function vibrateLong() as Void {
-        if (Attention has :vibrate) { Attention.vibrate([new Attention.VibeProfile(100, 500)]); }
+        if (Attention has :vibrate) { Attention.vibrate(_longVibePattern); }
     }
 
     // ========================================================
@@ -1683,7 +1766,7 @@ class EGYMView extends WatchUi.View {
         if (updateProgram(newIndex)) {
             WatchUi.popView(WatchUi.SLIDE_DOWN);
         } else {
-            logViewIssue("Program change aborted: createAndStart failed.");
+            logViewIssue(_sLogProgramChangeAborted);
             WatchUi.requestUpdate();
         }
     }
@@ -1714,12 +1797,12 @@ class EGYMView extends WatchUi.View {
     function getSessionSummaryAverageLine() as String {
         if (_sessionWattCount > 0 && _sessionWattCount >= _sessionQualityCount) {
             var avgWatt = ((_sessionWattTotal + (_sessionWattCount / 2)) / _sessionWattCount).toNumber();
-            return _sSummaryAvgWatt + ": " + avgWatt.toString() + " W";
+            return _sSummaryAvgWatt + ": " + avgWatt.toString() + _sUnitWSpaced;
         }
 
         if (_sessionQualityCount > 0) {
             var avgQuality = ((_sessionQualityTotal + (_sessionQualityCount / 2)) / _sessionQualityCount).toNumber();
-            return _sSummaryAvgQuality + ": " + avgQuality.toString() + "%";
+            return _sSummaryAvgQuality + ": " + avgQuality.toString() + _sUnitPercent;
         }
 
         return "";
@@ -1728,12 +1811,12 @@ class EGYMView extends WatchUi.View {
     function getSessionAverageFitValue() as String {
         if (_sessionWattCount > 0 && _sessionWattCount >= _sessionQualityCount) {
             var avgWatt = ((_sessionWattTotal + (_sessionWattCount / 2)) / _sessionWattCount).toNumber();
-            return avgWatt.toString() + " W";
+            return avgWatt.toString() + _sUnitWSpaced;
         }
 
         if (_sessionQualityCount > 0) {
             var avgQuality = ((_sessionQualityTotal + (_sessionQualityCount / 2)) / _sessionQualityCount).toNumber();
-            return avgQuality.toString() + "%";
+            return avgQuality.toString() + _sUnitPercent;
         }
 
         return "";
@@ -1754,7 +1837,7 @@ class EGYMView extends WatchUi.View {
             if (delta > bestDelta) {
                 bestDelta = delta;
                 bestName = rec[:n] as String;
-                bestUnit = (rec[:t] as String).equals("W") ? " W" : " kg";
+                bestUnit = (rec[:t] as String).equals(RECORD_TYPE_WATT) ? _sUnitWSpaced : _sUnitKgSpaced;
             }
         }
 
@@ -1782,7 +1865,7 @@ class EGYMView extends WatchUi.View {
             pct = 1;
         }
 
-        var signedPct = pct.toString() + "%";
+        var signedPct = pct.toString() + _sUnitPercent;
         if (diff > 0) {
             signedPct = "+" + signedPct;
         } else {
@@ -1795,14 +1878,50 @@ class EGYMView extends WatchUi.View {
     private function safeStoreSet(key as String, value, context as String) as Boolean {
         var ok = EGYMSafeStore.setStorageValue(key, value);
         if (!ok) {
-            logViewIssue("storage write failed (" + context + "): " + key);
+            logStorageWriteFailed(context, key);
         }
         return ok;
     }
 
+    private function logViewIssueWithSuffix(prefix as String, suffix as String) as Void {
+        if (!_enableViewLogs) {
+            return;
+        }
+        ensureViewLogStringsLoaded();
+        logViewIssue(prefix + suffix);
+    }
+
+    private function logStorageWriteFailed(context as String, key as String) as Void {
+        if (!_enableViewLogs) {
+            return;
+        }
+        ensureViewLogStringsLoaded();
+        logViewIssue(_sLogStorageWriteFailedPrefix + context + _sLogStorageWriteFailedMid + key);
+    }
+
+    private function ensureViewLogStringsLoaded() as Void {
+        if (_sLogPrefix.length() > 0) {
+            return;
+        }
+        _sLogPrefix = WatchUi.loadResource(Rez.Strings.LogViewPrefix);
+        _sLogPropWriteFailed = WatchUi.loadResource(Rez.Strings.LogViewPropWriteFailed);
+        _sLogCreateAndStartFailed = WatchUi.loadResource(Rez.Strings.LogViewCreateAndStartFailed);
+        _sLogUpdateSessionStatsFailed = WatchUi.loadResource(Rez.Strings.LogViewUpdateStatsFailed);
+        _sLogCheckpointSaveFailed = WatchUi.loadResource(Rez.Strings.LogViewCheckpointSaveFailed);
+        _sLogRestoreCheckpointPropFailed = WatchUi.loadResource(Rez.Strings.LogViewRestoreCheckpointPropFailed);
+        _sLogRestoreCheckpointCreateStartFailed = WatchUi.loadResource(Rez.Strings.LogViewRestoreCheckpointCreateStartFailed);
+        _sLogProgramChangeAborted = WatchUi.loadResource(Rez.Strings.LogViewProgramChangeAborted);
+        _sLogStorageWriteFailedPrefix = WatchUi.loadResource(Rez.Strings.LogViewStorageWriteFailedPrefix);
+        _sLogStorageWriteFailedMid = WatchUi.loadResource(Rez.Strings.LogViewStorageWriteFailedMid);
+    }
+
     private function logViewIssue(message as String) as Void {
+        if (!_enableViewLogs) {
+            return;
+        }
+        ensureViewLogStringsLoaded();
         try {
-            System.println("[EGYM view] " + message);
+            System.println(_sLogPrefix + message);
         } catch (ignored) {
             // Logging must never affect rendering or input flow.
         }

@@ -35,7 +35,7 @@ class EGYMViewDrawer {
 
     // Header string caches (prevents GC spikes)
     private var _lastTimeRaw as Number = -1;
-    private var _cachedTimeStr as String = "00:00";
+    private var _cachedTimeStr as String = "";
     private var _lastCals as Number = -1;
     private var _cachedHeaderRest as String = "";
 
@@ -56,6 +56,17 @@ class EGYMViewDrawer {
 
     // HR zone cache
     private var _hrZones as Array<Number>? = null;
+
+    // Device/layout cache
+    private var _deviceType as Symbol = :unknown;
+    private var _deviceTypeW as Number = -1;
+    private var _deviceTypeH as Number = -1;
+    private var _subscreenBounds as Graphics.BoundingBox? = null;
+    private var _subscreenX as Number = 0;
+    private var _subscreenY as Number = 0;
+    private var _subscreenW as Number = 0;
+    private var _subscreenH as Number = 0;
+    private var _hasValidSubscreen as Boolean = false;
 
     // Text-fit cache (bounded to avoid unbounded growth)
     private const FIT_TEXT_CACHE_LIMIT = 120;
@@ -219,6 +230,15 @@ class EGYMViewDrawer {
         _lastCals = -1;
         _fitTextCache = {} as Dictionary<String, String>;
         _fitTextCacheCount = 0;
+        _deviceType = :unknown;
+        _deviceTypeW = -1;
+        _deviceTypeH = -1;
+        _subscreenBounds = null;
+        _subscreenX = 0;
+        _subscreenY = 0;
+        _subscreenW = 0;
+        _subscreenH = 0;
+        _hasValidSubscreen = false;
     }
 
     // ========================================================
@@ -230,6 +250,7 @@ class EGYMViewDrawer {
     function draw(dc as Graphics.Dc, view as EGYMView) as Void {
         var w = dc.getWidth();
         var h = dc.getHeight();
+        resolveDeviceType(w, h);
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
 
@@ -249,6 +270,134 @@ class EGYMViewDrawer {
         }
     }
 
+    private function resolveDeviceType(w as Number, h as Number) as Symbol {
+        if (_deviceType != :unknown &&
+            _deviceTypeW == w &&
+            _deviceTypeH == h) {
+            return _deviceType;
+        }
+
+        _deviceTypeW = w;
+        _deviceTypeH = h;
+        _deviceType = :default;
+        _subscreenBounds = null;
+        _subscreenX = 0;
+        _subscreenY = 0;
+        _subscreenW = 0;
+        _subscreenH = 0;
+        _hasValidSubscreen = false;
+
+        var subscreen = null;
+        if (WatchUi has :getSubscreen) {
+            try {
+                subscreen = WatchUi.getSubscreen();
+            } catch (ignored) {
+                subscreen = null;
+            }
+        }
+        if (subscreen != null) {
+            _subscreenBounds = subscreen as Graphics.BoundingBox;
+            var box = _subscreenBounds as Graphics.BoundingBox;
+            _subscreenX = box.x.toNumber();
+            _subscreenY = box.y.toNumber();
+            _subscreenW = box.width.toNumber();
+            _subscreenH = box.height.toNumber();
+            _hasValidSubscreen = _subscreenW > 0 && _subscreenH > 0;
+        }
+
+        var isMono = false;
+        try {
+            var settings = System.getDeviceSettings();
+            if (settings != null && settings has :colorDepth && settings.colorDepth != null) {
+                isMono = settings.colorDepth <= 1;
+            }
+        } catch (ignored2) {
+            isMono = false;
+        }
+
+        var hasSubscreen = _hasValidSubscreen;
+        var compact = (w <= 176 && h <= 176);
+        if (hasSubscreen && compact && isMono) {
+            _deviceType = :instinct2;
+        }
+
+        return _deviceType;
+    }
+
+    private function isInstinct2Layout(w as Number, h as Number) as Boolean {
+        return resolveDeviceType(w, h) == :instinct2;
+    }
+
+    private function isInstinct2Active() as Boolean {
+        return _deviceType == :instinct2;
+    }
+
+    private function getInstinctMainLeft() as Number {
+        return 6;
+    }
+
+    private function getInstinctMainRight(w as Number) as Number {
+        var right = w - 6;
+        if (_hasValidSubscreen) {
+            var candidate = (_subscreenX - 4).toNumber();
+            if (candidate > 72) {
+                right = candidate;
+            }
+        }
+        if (right <= getInstinctMainLeft() + 40) {
+            right = w - 6;
+        }
+        return right;
+    }
+
+    private function getInstinctMainWidth(w as Number) as Number {
+        var width = (getInstinctMainRight(w) - getInstinctMainLeft()).toNumber();
+        return width > 0 ? width : w;
+    }
+
+    private function getInstinctMainCenterX(w as Number) as Number {
+        return getInstinctMainLeft() + (getInstinctMainWidth(w) / 2);
+    }
+
+    private function getPhaseContentCenterX(w as Number, h as Number) as Number {
+        if (isInstinct2Layout(w, h)) {
+            return getInstinctMainCenterX(w);
+        }
+        return w / 2;
+    }
+
+    private function getPhaseContentWidth(w as Number, h as Number) as Number {
+        if (isInstinct2Layout(w, h)) {
+            return getInstinctMainWidth(w);
+        }
+        return getSafeContentWidth(w);
+    }
+
+    private function getMonochromeAwareTextColor(defaultColor as Number) as Number {
+        return isInstinct2Active() ? Graphics.COLOR_WHITE : defaultColor;
+    }
+
+    private function drawVerticalPattern(
+        dc as Graphics.Dc,
+        x as Number,
+        y as Number,
+        width as Number,
+        height as Number,
+        step as Number
+    ) as Void {
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+        var stride = step < 1 ? 1 : step;
+        var endX = x + width;
+        var endY = y + height - 1;
+        var px = x;
+        while (px < endX) {
+            dc.drawLine(px, y, px, endY);
+            px += stride;
+        }
+    }
+
     // ========================================================
     // OVERLAY: Success / Discarded
     // ========================================================
@@ -260,6 +409,10 @@ class EGYMViewDrawer {
         view as EGYMView,
         isDiscard as Boolean
     ) as Void {
+        if (isInstinct2Layout(w, h)) {
+            drawOverlayViewInstinct2(dc, w, h, view, isDiscard);
+            return;
+        }
         if (isDiscard) {
             drawDiscardedOverlay(dc, w, h, view);
         } else {
@@ -274,13 +427,13 @@ class EGYMViewDrawer {
         view as EGYMView
     ) as Void {
         var title = view.isShowingSaveFailed ? view._sSaveFailed : view._sDiscarded;
-        dc.setColor(view.isShowingSaveFailed ? CLR_WARN : CLR_ERROR, -1);
+        dc.setColor(getMonochromeAwareTextColor(view.isShowingSaveFailed ? CLR_WARN : CLR_ERROR), -1);
         dc.drawText(
             w / 2, h * 0.35, Graphics.FONT_MEDIUM,
             title, Graphics.TEXT_JUSTIFY_CENTER
         );
 
-        dc.setColor(CLR_DIM, -1);
+        dc.setColor(getMonochromeAwareTextColor(CLR_DIM), -1);
         dc.drawText(
             w / 2, h * 0.55, Graphics.FONT_XTINY,
             view._sBackSave, Graphics.TEXT_JUSTIFY_CENTER
@@ -293,7 +446,7 @@ class EGYMViewDrawer {
         h as Number,
         view as EGYMView
     ) as Void {
-        dc.setColor(CLR_POSITIVE, -1);
+        dc.setColor(getMonochromeAwareTextColor(CLR_POSITIVE), -1);
         dc.drawText(
             w / 2, h * 0.2, Graphics.FONT_SMALL,
             view._sCircuitComplete, Graphics.TEXT_JUSTIFY_CENTER
@@ -302,14 +455,14 @@ class EGYMViewDrawer {
         dc.setColor(Graphics.COLOR_WHITE, -1);
         dc.drawText(
             w / 2, h * 0.3, Graphics.FONT_SMALL,
-            view.sessionTotalKg.toString() + " kg",
+            view.sessionTotalKg.toString() + view._sUnitKgSpaced,
             Graphics.TEXT_JUSTIFY_CENTER
         );
 
-        dc.setColor(CLR_ACCENT, -1);
+        dc.setColor(getMonochromeAwareTextColor(CLR_ACCENT), -1);
         dc.drawText(
             w / 2, h * 0.4, Graphics.FONT_SMALL,
-            view.finalCalories.toString() + " kcal",
+            view.finalCalories.toString() + " " + view._sUnitKcal,
             Graphics.TEXT_JUSTIFY_CENTER
         );
 
@@ -322,17 +475,79 @@ class EGYMViewDrawer {
         if (view.sessionRecords.size() > 0) {
             drawRecordsList(dc, w, h, view, recordsStartY);
         } else {
-            dc.setColor(CLR_DIM, -1);
+            dc.setColor(getMonochromeAwareTextColor(CLR_DIM), -1);
             dc.drawText(
                 w / 2, recordsStartY, Graphics.FONT_XTINY,
                 view._sNoRecords, Graphics.TEXT_JUSTIFY_CENTER
             );
         }
 
-        dc.setColor(CLR_DIM, -1);
+        dc.setColor(getMonochromeAwareTextColor(CLR_DIM), -1);
         dc.drawText(
             w / 2, h * 0.9, Graphics.FONT_XTINY,
             view._sBackSave, Graphics.TEXT_JUSTIFY_CENTER
+        );
+    }
+
+    private function drawOverlayViewInstinct2(
+        dc as Graphics.Dc,
+        w as Number,
+        h as Number,
+        view as EGYMView,
+        isDiscard as Boolean
+    ) as Void {
+        var boxX = 10;
+        var boxW = w - 20;
+        var boxY = (h * 0.24).toNumber();
+        var boxH = 30;
+        var title = isDiscard
+            ? (view.isShowingSaveFailed ? view._sSaveFailed : view._sDiscarded)
+            : view._sCircuitComplete;
+
+        if (isDiscard) {
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+            dc.drawRectangle(boxX, boxY, boxW, boxH);
+            drawVerticalPattern(dc, boxX + 2, boxY + 2, boxW - 4, boxH - 4, 4);
+            dc.drawText(
+                w / 2, boxY + boxH / 2, Graphics.FONT_SMALL,
+                fitTextToWidth(dc, title, Graphics.FONT_SMALL, boxW - 6),
+                Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
+            );
+            dc.setColor(Graphics.COLOR_WHITE, -1);
+            dc.drawText(
+                w / 2, h * 0.52, Graphics.FONT_XTINY,
+                fitTextToWidth(dc, view._sBackSave, Graphics.FONT_XTINY, w - 20),
+                Graphics.TEXT_JUSTIFY_CENTER
+            );
+            return;
+        }
+
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_WHITE);
+        dc.fillRectangle(boxX, boxY, boxW, boxH);
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+        drawVerticalPattern(dc, boxX + 1, boxY + 1, boxW - 2, boxH - 2, 3);
+        dc.drawText(
+            w / 2, boxY + boxH / 2, Graphics.FONT_SMALL,
+            fitTextToWidth(dc, title, Graphics.FONT_SMALL, boxW - 6),
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
+        );
+
+        dc.setColor(Graphics.COLOR_WHITE, -1);
+        dc.drawText(
+            w / 2, h * 0.43, Graphics.FONT_SMALL,
+            view.sessionTotalKg.toString() + view._sUnitKgSpaced,
+            Graphics.TEXT_JUSTIFY_CENTER
+        );
+        dc.drawText(
+            w / 2, h * 0.53, Graphics.FONT_SMALL,
+            view.finalCalories.toString() + " " + view._sUnitKcal,
+            Graphics.TEXT_JUSTIFY_CENTER
+        );
+
+        var hint = fitTextToWidth(dc, view._sBackSave, Graphics.FONT_XTINY, w - 20);
+        dc.drawText(
+            w / 2, h * 0.9, Graphics.FONT_XTINY,
+            hint, Graphics.TEXT_JUSTIFY_CENTER
         );
     }
 
@@ -352,7 +567,7 @@ class EGYMViewDrawer {
             Graphics.FONT_XTINY,
             maxWidth
         );
-        dc.setColor(CLR_SECONDARY, -1);
+        dc.setColor(getMonochromeAwareTextColor(CLR_SECONDARY), -1);
         dc.drawText(
             w / 2, lineY, Graphics.FONT_XTINY,
             primary, Graphics.TEXT_JUSTIFY_CENTER
@@ -371,7 +586,7 @@ class EGYMViewDrawer {
         var trend = view.getSessionSummaryTrendLine();
         if (trend.length() > 0) {
             lineY += getSuccessSummaryLineGap(h);
-            dc.setColor(CLR_HIGHLIGHT, -1);
+            dc.setColor(getMonochromeAwareTextColor(CLR_HIGHLIGHT), -1);
             dc.drawText(
                 w / 2, lineY, Graphics.FONT_XTINY,
                 fitTextToWidth(dc, trend, Graphics.FONT_XTINY, maxWidth),
@@ -417,10 +632,10 @@ class EGYMViewDrawer {
             var splitOffset = getRecordSplitOffset(w);
             var nameWidth = ((w / 2) - splitOffset - getContentInset(w)).toNumber();
             var name = fitTextToWidth(dc, view.exDisplayName(rec[:n] as String), Graphics.FONT_XTINY, nameWidth);
-            var unit = (rec[:t] as String).equals("W") ? " W" : " kg";
-            var deltaStr = rec[:d] != null ? rec[:d].toString() : "0";
+            var unit = (rec[:t] as String).equals(view.RECORD_TYPE_WATT) ? view._sUnitWSpaced : view._sUnitKgSpaced;
+            var deltaStr = EGYMSafeStore.toNumber(rec[:d], 0).toString();
 
-            dc.setColor(CLR_SECONDARY, -1);
+            dc.setColor(getMonochromeAwareTextColor(CLR_SECONDARY), -1);
             dc.drawText(
                 w / 2 - splitOffset, startY, Graphics.FONT_XTINY,
                 name, Graphics.TEXT_JUSTIFY_RIGHT
@@ -428,7 +643,7 @@ class EGYMViewDrawer {
 
             drawBolt(dc, w / 2 - getRecordBoltXOffset(w), startY + getRecordBoltYOffset(h), h);
 
-            dc.setColor(CLR_POSITIVE, -1);
+            dc.setColor(getMonochromeAwareTextColor(CLR_POSITIVE), -1);
             dc.drawText(
                 w / 2 + splitOffset, startY, Graphics.FONT_XTINY,
                 "+" + deltaStr + unit,
@@ -461,7 +676,7 @@ class EGYMViewDrawer {
         _boltPoints[5][0] = bx + 1;      _boltPoints[5][1] = by + (boltH * 4) / 10;
         _boltPoints[6][0] = bx + 2;      _boltPoints[6][1] = by;
 
-        dc.setColor(CLR_CAUTION, -1);
+        dc.setColor(getMonochromeAwareTextColor(CLR_CAUTION), -1);
         dc.fillPolygon(_boltPoints);
     }
 
@@ -488,7 +703,7 @@ class EGYMViewDrawer {
         _downTriPoints[1][0] = cx + triSize; _downTriPoints[1][1] = iy + gap;
         _downTriPoints[2][0] = cx;           _downTriPoints[2][1] = iy + gap + triSize;
 
-        dc.setColor(CLR_DIM, -1);
+        dc.setColor(getMonochromeAwareTextColor(CLR_DIM), -1);
         dc.fillPolygon(_upTriPoints);
         dc.fillPolygon(_downTriPoints);
     }
@@ -513,7 +728,7 @@ class EGYMViewDrawer {
         }
 
         var info = Activity.getActivityInfo();
-        var hr = "--";
+        var hr = view._sHeaderNoHr;
         var hrNum = 0;
         var timeRaw = 0;
         var cals = 0;
@@ -533,16 +748,22 @@ class EGYMViewDrawer {
         drawHeader(dc, w, h, view, hr, hrNum, timeRaw, cals);
 
         var summaryText = view._cachedProgLabel + " | " + view._sRound + " " + view.currentRound;
+        var summaryWidth = getSafeContentWidth(w);
+        var summaryX = w / 2;
+        if (isInstinct2Layout(w, h)) {
+            summaryWidth = getInstinctMainWidth(w);
+            summaryX = getInstinctMainCenterX(w);
+        }
         summaryText = fitTextToWidth(
             dc,
             summaryText,
             Graphics.FONT_XTINY,
-            getSafeContentWidth(w)
+            summaryWidth
         );
 
         dc.setColor(Graphics.COLOR_WHITE, -1);
         dc.drawText(
-            w / 2, getProgramSummaryY(h), Graphics.FONT_XTINY,
+            summaryX, getProgramSummaryY(h), Graphics.FONT_XTINY,
             summaryText,
             Graphics.TEXT_JUSTIFY_CENTER
         );
@@ -570,6 +791,11 @@ class EGYMViewDrawer {
         timeRaw as Number,
         cals as Number
     ) as Void {
+        if (isInstinct2Layout(w, h)) {
+            drawHeaderInstinct2(dc, w, h, view, hr, timeRaw);
+            return;
+        }
+
         var timeChanged = (timeRaw != _lastTimeRaw);
         var calsChanged = (cals != _lastCals);
 
@@ -584,7 +810,7 @@ class EGYMViewDrawer {
         // Rebuild suffix when either time or calories changed.
         if (timeChanged || calsChanged) {
             _lastCals = cals;
-            _cachedHeaderRest = " | " + _cachedTimeStr + " | " + cals + " kcal";
+            _cachedHeaderRest = " | " + _cachedTimeStr + " | " + cals + " " + view._sUnitKcal;
         }
 
         var hrStr = view._sHR + ": " + hr;
@@ -625,6 +851,104 @@ class EGYMViewDrawer {
         );
     }
 
+    private function drawHeaderInstinct2(
+        dc as Graphics.Dc,
+        w as Number,
+        h as Number,
+        view as EGYMView,
+        hr as String,
+        timeRaw as Number
+    ) as Void {
+        var timeChanged = (timeRaw != _lastTimeRaw);
+        if (timeChanged) {
+            _lastTimeRaw = timeRaw;
+            var m = timeRaw / 60;
+            var s = timeRaw % 60;
+            _cachedTimeStr = m.format("%02d") + ":" + s.format("%02d");
+        }
+
+        var headerText = view._sHR + ":" + hr + " " + _cachedTimeStr;
+        var maxW = getInstinctMainWidth(w);
+        headerText = fitTextToWidth(dc, headerText, Graphics.FONT_XTINY, maxW);
+
+        var x = getInstinctMainLeft();
+        var y = h <= 176 ? 8 : (h * 0.1).toNumber();
+        dc.setColor(Graphics.COLOR_WHITE, -1);
+        dc.drawText(x, y, Graphics.FONT_XTINY, headerText, Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawLine(x, y + 14, x + maxW, y + 14);
+
+        drawInstinctSubWindowStatus(dc, w, h, view);
+    }
+
+    private function drawInstinctSubWindowStatus(
+        dc as Graphics.Dc,
+        w as Number,
+        h as Number,
+        view as EGYMView
+    ) as Void {
+        if (!_hasValidSubscreen) {
+            return;
+        }
+
+        var sx = _subscreenX;
+        var sy = _subscreenY;
+        var sw = _subscreenW;
+        var sh = _subscreenH;
+        if (sw < 20 || sh < 20) {
+            return;
+        }
+
+        var label = view._sInstinctSet;
+        var value = view._sInstinctDefaultProgress;
+        if (view.currentPhase == view.PHASE_BREAK) {
+            label = view._sInstinctRest;
+            var elapsed = ((System.getTimer() - view.breakStartTime) / 1000).toNumber();
+            if (elapsed < 0) {
+                elapsed = 0;
+            }
+            value = elapsed.toString() + view._sUnitSeconds;
+        } else {
+            var total = view.zirkel.size();
+            if (total < 1) {
+                total = 1;
+            }
+            var current = view.index + 1;
+            if (current < 1) {
+                current = 1;
+            } else if (current > total) {
+                current = total;
+            }
+            value = current.toString() + "/" + total.toString();
+        }
+
+        dc.setClip(sx, sy, sw, sh);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_WHITE);
+        dc.fillRectangle(sx, sy, sw, sh);
+
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+        dc.drawRectangle(sx, sy, sw, sh);
+        drawVerticalPattern(dc, sx + 1, sy + 1, sw - 2, 10, 3);
+
+        var maxLabelW = sw - 6;
+        var maxValueW = sw - 6;
+        dc.drawText(
+            sx + sw / 2, sy + 4, Graphics.FONT_XTINY,
+            fitTextToWidth(dc, label, Graphics.FONT_XTINY, maxLabelW),
+            Graphics.TEXT_JUSTIFY_CENTER
+        );
+
+        var valueFont = Graphics.FONT_SMALL;
+        if (dc.getTextWidthInPixels(value, valueFont) > maxValueW) {
+            valueFont = Graphics.FONT_XTINY;
+        }
+        dc.drawText(
+            sx + sw / 2, sy + (sh * 0.62).toNumber(), valueFont,
+            fitTextToWidth(dc, value, valueFont, maxValueW),
+            Graphics.TEXT_JUSTIFY_CENTER
+        );
+        dc.clearClip();
+    }
+
     //! OPTIMIZED: Fast integer math prevents floating point conversion overhead.
     private function drawProgressBar(
         dc as Graphics.Dc,
@@ -632,6 +956,11 @@ class EGYMViewDrawer {
         h as Number,
         view as EGYMView
     ) as Void {
+        if (isInstinct2Layout(w, h)) {
+            drawProgressBarInstinct2(dc, w, h, view);
+            return;
+        }
+
         var barW = getProgressBarWidth(w);
         var completed = view.index;
         if (view.currentPhase == view.PHASE_ADJUST ||
@@ -651,6 +980,66 @@ class EGYMViewDrawer {
         dc.fillRectangle((w - barW) / 2, barY, progress, getProgressBarHeight(h));
     }
 
+    private function drawProgressBarInstinct2(
+        dc as Graphics.Dc,
+        w as Number,
+        h as Number,
+        view as EGYMView
+    ) as Void {
+        var total = view.zirkel.size();
+        if (total == 0) {
+            return;
+        }
+
+        var completed = view.index;
+        if (view.currentPhase == view.PHASE_ADJUST ||
+            view.currentPhase == view.PHASE_BREAK) {
+            completed = view.index + 1;
+        }
+        if (completed < 0) {
+            completed = 0;
+        } else if (completed > total) {
+            completed = total;
+        }
+
+        var barX = getInstinctMainLeft();
+        var barW = getInstinctMainWidth(w);
+        var barY = getWorkoutProgressBarY(h);
+        if (barY < 66) {
+            barY = 66;
+        }
+        var barH = getProgressBarHeight(h) + 3;
+        if (barH < 5) {
+            barH = 5;
+        }
+
+        var fillW = ((completed * (barW - 2)) / total).toNumber();
+        if (fillW < 0) {
+            fillW = 0;
+        } else if (fillW > barW - 2) {
+            fillW = barW - 2;
+        }
+
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+        dc.drawRectangle(barX, barY, barW, barH);
+        drawVerticalPattern(dc, barX + 1, barY + 1, barW - 2, barH - 2, 5);
+
+        if (fillW > 0) {
+            dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_WHITE);
+            dc.fillRectangle(barX + 1, barY + 1, fillW, barH - 2);
+            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+            drawVerticalPattern(dc, barX + 1, barY + 1, fillW, barH - 2, 2);
+        }
+
+        var status = completed.toString() + "/" + total.toString();
+        dc.setColor(Graphics.COLOR_WHITE, -1);
+        dc.drawText(
+            barX + barW, barY - 13, Graphics.FONT_XTINY,
+            fitTextToWidth(dc, status, Graphics.FONT_XTINY, barW),
+            Graphics.TEXT_JUSTIFY_RIGHT
+        );
+    }
+
     // ========================================================
     // EXERCISE PHASE
     // ========================================================
@@ -663,22 +1052,24 @@ class EGYMViewDrawer {
     ) as Void {
         var infoY = getMetricInfoY(dh);
         var labelY = getMetricLabelY(dh);
+        var centerX = getPhaseContentCenterX(w, dh);
+        var contentWidth = getPhaseContentWidth(w, dh);
 
-        dc.setColor(CLR_SECONDARY, -1);
+        dc.setColor(getMonochromeAwareTextColor(CLR_SECONDARY), -1);
         dc.drawText(
-            w / 2, infoY, Graphics.FONT_XTINY,
+            centerX, infoY, Graphics.FONT_XTINY,
             view._cachedExInfo, Graphics.TEXT_JUSTIFY_CENTER
         );
 
-        var exLabel = fitTextToWidth(dc, view._cachedExLabel, Graphics.FONT_XTINY, getSafeContentWidth(w));
+        var exLabel = fitTextToWidth(dc, view._cachedExLabel, Graphics.FONT_XTINY, contentWidth);
 
-        dc.setColor(CLR_POSITIVE, -1);
+        dc.setColor(getMonochromeAwareTextColor(CLR_POSITIVE), -1);
         dc.drawText(
-            w / 2, labelY, Graphics.FONT_XTINY,
+            centerX, labelY, Graphics.FONT_XTINY,
             exLabel, Graphics.TEXT_JUSTIFY_CENTER
         );
 
-        drawLargeWeight(dc, w, dh, view.currentWeight);
+        drawLargeWeight(dc, w, dh, view.currentWeight, view);
 
         var hintText = isCompactLayout(dh) ? view._sAdjustKgCompact : view._sAdjustKg;
         drawExerciseHintBlock(dc, w, dh, hintText, view._sSkipHintShort);
@@ -690,12 +1081,13 @@ class EGYMViewDrawer {
         dc as Graphics.Dc,
         w as Number,
         dh as Number,
-        weight as Number
+        weight as Number,
+        view as EGYMView
     ) as Void {
         dc.setColor(Graphics.COLOR_WHITE, -1);
         var valueFont = getWeightValueFont(dh);
         var weightWidth = dc.getTextWidthInPixels(weight.toString(), valueFont);
-        var kgWidth = dc.getTextWidthInPixels("kg", Graphics.FONT_MEDIUM);
+        var kgWidth = dc.getTextWidthInPixels(view._sUnitKg, Graphics.FONT_MEDIUM);
         var gap = getMetricUnitGap(dh);
         var startX = (w - (weightWidth + gap + kgWidth)) / 2;
         var centerY = getMetricValueY(dh);
@@ -706,10 +1098,10 @@ class EGYMViewDrawer {
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER
         );
 
-        dc.setColor(CLR_SECONDARY, -1);
+        dc.setColor(getMonochromeAwareTextColor(CLR_SECONDARY), -1);
         dc.drawText(
             startX + weightWidth + gap, centerY, Graphics.FONT_MEDIUM,
-            "kg",
+            view._sUnitKg,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER
         );
     }
@@ -732,7 +1124,7 @@ class EGYMViewDrawer {
                 getSafeContentWidth(w)
             );
 
-            dc.setColor(CLR_HIGHLIGHT, -1);
+            dc.setColor(getMonochromeAwareTextColor(CLR_HIGHLIGHT), -1);
             dc.drawText(
                 w / 2, labelY, Graphics.FONT_XTINY,
                 view._sNext, Graphics.TEXT_JUSTIFY_CENTER
@@ -743,7 +1135,7 @@ class EGYMViewDrawer {
                 nextName, Graphics.TEXT_JUSTIFY_CENTER
             );
         } else if (!view.isIndividualMode) {
-            dc.setColor(CLR_SECONDARY, -1);
+            dc.setColor(getMonochromeAwareTextColor(CLR_SECONDARY), -1);
             dc.drawText(
                 w / 2, labelY, Graphics.FONT_XTINY,
                 view._sLastExercise, Graphics.TEXT_JUSTIFY_CENTER
@@ -764,23 +1156,25 @@ class EGYMViewDrawer {
         var isExp = view._cachedIsExp;
         var infoY = getMetricInfoY(dh);
         var labelY = getMetricLabelY(dh);
+        var centerX = getPhaseContentCenterX(w, dh);
+        var contentWidth = getPhaseContentWidth(w, dh);
 
-        dc.setColor(CLR_ACCENT, -1);
+        dc.setColor(getMonochromeAwareTextColor(CLR_ACCENT), -1);
         dc.drawText(
-            w / 2, infoY, Graphics.FONT_XTINY,
+            centerX, infoY, Graphics.FONT_XTINY,
             isExp ? view._sRateWatt : view._sRateQuality,
             Graphics.TEXT_JUSTIFY_CENTER
         );
 
         var exFont = isCompactLayout(dh) ? Graphics.FONT_XTINY : Graphics.FONT_SMALL;
-        var exLabel = fitTextToWidth(dc, view._cachedExLabel, exFont, getSafeContentWidth(w));
+        var exLabel = fitTextToWidth(dc, view._cachedExLabel, exFont, contentWidth);
 
         dc.drawText(
-            w / 2, labelY, exFont,
+            centerX, labelY, exFont,
             exLabel, Graphics.TEXT_JUSTIFY_CENTER
         );
 
-        var suffix = isExp ? " W" : "%";
+        var suffix = isExp ? view._sUnitWSpaced : view._sUnitPercent;
         var numStr = view.qualityValue.toString();
         var centerY = getAdjustMetricValueY(dh);
         var valueFont = getAdjustValueFont(dh, isExp);
@@ -790,14 +1184,14 @@ class EGYMViewDrawer {
         var gap = getMetricUnitGap(dh);
         var startX = (w - (numW + gap + suffW)) / 2;
 
-        dc.setColor(CLR_ACCENT, -1);
+        dc.setColor(getMonochromeAwareTextColor(CLR_ACCENT), -1);
         dc.drawText(
             startX, centerY, valueFont,
             numStr,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER
         );
 
-        dc.setColor(CLR_SECONDARY, -1);
+        dc.setColor(getMonochromeAwareTextColor(CLR_SECONDARY), -1);
         dc.drawText(
             startX + numW + gap, centerY, Graphics.FONT_MEDIUM,
             suffix,
@@ -829,17 +1223,18 @@ class EGYMViewDrawer {
         }
 
         var elapsed = (System.getTimer() - view.breakStartTime) / 1000;
+        var centerX = getPhaseContentCenterX(w, dh);
 
-        dc.setColor(CLR_HIGHLIGHT, -1);
+        dc.setColor(getMonochromeAwareTextColor(CLR_HIGHLIGHT), -1);
         dc.drawText(
-            w / 2, titleY, Graphics.FONT_XTINY,
+            centerX, titleY, Graphics.FONT_XTINY,
             view._sBreak, Graphics.TEXT_JUSTIFY_CENTER
         );
 
         var breakHint = view.isIndividualMode
             ? (isCompactLayout(dh) ? view._sBreakPickCompact : view._sBreakPickHint)
             : (isCompactLayout(dh) ? view._sBreakContinueCompact : view._sBreakContinueHint);
-        dc.setColor(CLR_HIGHLIGHT, -1);
+        dc.setColor(getMonochromeAwareTextColor(CLR_HIGHLIGHT), -1);
         dc.drawText(
             w / 2, _yTimer, Graphics.FONT_NUMBER_HOT,
             elapsed.toString(),
@@ -858,7 +1253,7 @@ class EGYMViewDrawer {
                 nextFont,
                 getSafeContentWidth(w)
             );
-            dc.setColor(CLR_HIGHLIGHT, -1);
+            dc.setColor(getMonochromeAwareTextColor(CLR_HIGHLIGHT), -1);
             dc.drawText(
                 w / 2, _yNextLabel, Graphics.FONT_XTINY,
                 view._sNext, Graphics.TEXT_JUSTIFY_CENTER
@@ -870,7 +1265,7 @@ class EGYMViewDrawer {
                 nextName, Graphics.TEXT_JUSTIFY_CENTER
             );
         } else if (!view.isIndividualMode) {
-            dc.setColor(CLR_SECONDARY, -1);
+            dc.setColor(getMonochromeAwareTextColor(CLR_SECONDARY), -1);
             dc.drawText(
                 w / 2, _yNextLabel, Graphics.FONT_XTINY,
                 view._sLastExercise, Graphics.TEXT_JUSTIFY_CENTER
@@ -888,7 +1283,7 @@ class EGYMViewDrawer {
             return;
         }
 
-        dc.setColor(CLR_MID, -1);
+        dc.setColor(getMonochromeAwareTextColor(CLR_MID), -1);
         dc.drawText(
             w / 2, y, Graphics.FONT_XTINY,
             text, Graphics.TEXT_JUSTIFY_CENTER
@@ -931,7 +1326,7 @@ class EGYMViewDrawer {
             line2Y = line1Y + lineGap;
         }
 
-        dc.setColor(CLR_DIM, -1);
+        dc.setColor(getMonochromeAwareTextColor(CLR_DIM), -1);
         dc.drawText(
             w / 2, line1Y, Graphics.FONT_XTINY,
             line1, Graphics.TEXT_JUSTIFY_CENTER
@@ -1049,6 +1444,9 @@ class EGYMViewDrawer {
     }
 
     private function getWeightValueFont(h as Number) as Graphics.FontType {
+        if (isInstinct2Active()) {
+            return Graphics.FONT_LARGE;
+        }
         return h <= 240 ? Graphics.FONT_LARGE : Graphics.FONT_NUMBER_HOT;
     }
 
@@ -1060,6 +1458,9 @@ class EGYMViewDrawer {
     }
 
     private function getAdjustValueFont(h as Number, isExp as Boolean) as Graphics.FontType {
+        if (isInstinct2Active()) {
+            return isExp ? Graphics.FONT_LARGE : Graphics.FONT_NUMBER_MILD;
+        }
         if (isExp) {
             return Graphics.FONT_LARGE;
         }
@@ -1337,7 +1738,7 @@ class EGYMViewDrawer {
             }
         }
 
-        dc.setColor(CLR_MID, -1);
+        dc.setColor(getMonochromeAwareTextColor(CLR_MID), -1);
         dc.drawText(
             isLeft ? safeInset : w - safeInset,
             y,
@@ -1401,6 +1802,11 @@ class EGYMViewDrawer {
         h as Number,
         view as EGYMView
     ) as Void {
+        if (isInstinct2Layout(w, h)) {
+            drawEndViewInstinct2(dc, w, h, view);
+            return;
+        }
+
         dc.setColor(CLR_POSITIVE, -1);
         dc.drawText(
             w / 2, h * 0.2, Graphics.FONT_SMALL,
@@ -1442,6 +1848,58 @@ class EGYMViewDrawer {
         dc.drawText(
             yr[0] + yr[2] / 2, yr[1] + yr[3] / 2,
             Graphics.FONT_SMALL, view._sYes,
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
+        );
+    }
+
+    private function drawEndViewInstinct2(
+        dc as Graphics.Dc,
+        w as Number,
+        h as Number,
+        view as EGYMView
+    ) as Void {
+        dc.setColor(Graphics.COLOR_WHITE, -1);
+        dc.drawText(
+            w / 2, h * 0.2, Graphics.FONT_SMALL,
+            fitTextToWidth(dc, view._sRoundComplete, Graphics.FONT_SMALL, w - 20),
+            Graphics.TEXT_JUSTIFY_CENTER
+        );
+        dc.drawText(
+            w / 2, h * 0.36, Graphics.FONT_XTINY,
+            fitTextToWidth(dc, view._sAnotherRound, Graphics.FONT_XTINY, w - 20),
+            Graphics.TEXT_JUSTIFY_CENTER
+        );
+
+        if (view._cachedBtnW != w || view._noBtnRect == null) {
+            view._cachedBtnW = w;
+            var btnW = (w * 0.32).toNumber();
+            var btnH = 28;
+            var gap = 14;
+            var startY = (h * 0.62).toNumber();
+            var leftX = (w / 2 - btnW - gap / 2).toNumber();
+            var rightX = (w / 2 + gap / 2).toNumber();
+            view._noBtnRect = [leftX, startY, btnW, btnH] as Array<Number>;
+            view._yesBtnRect = [rightX, startY, btnW, btnH] as Array<Number>;
+        }
+
+        var nr = view._noBtnRect as Array<Number>;
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+        dc.drawRectangle(nr[0], nr[1], nr[2], nr[3]);
+        drawVerticalPattern(dc, nr[0] + 1, nr[1] + 1, nr[2] - 2, nr[3] - 2, 5);
+        dc.drawText(
+            nr[0] + nr[2] / 2, nr[1] + nr[3] / 2,
+            Graphics.FONT_XTINY, view._sNo,
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
+        );
+
+        var yr = view._yesBtnRect as Array<Number>;
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_WHITE);
+        dc.fillRectangle(yr[0], yr[1], yr[2], yr[3]);
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
+        drawVerticalPattern(dc, yr[0] + 1, yr[1] + 1, yr[2] - 2, yr[3] - 2, 2);
+        dc.drawText(
+            yr[0] + yr[2] / 2, yr[1] + yr[3] / 2,
+            Graphics.FONT_XTINY, view._sYes,
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
         );
     }

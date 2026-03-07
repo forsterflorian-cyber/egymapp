@@ -47,6 +47,9 @@ class EGYMSafeStore {
 
     static function setStorageValue(key as String, value) as Boolean {
         try {
+            if (Storage.getValue(key) == value) {
+                return true;
+            }
             Storage.setValue(key, value);
             return true;
         } catch (e) {
