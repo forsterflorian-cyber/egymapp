@@ -3,7 +3,7 @@
     <fitField id="1" dataLabel="@Strings.FitWeightLabel" unitLabel="@Strings.FitWeightUnit" sortOrder="1" precision="0" displayInActivityLaps="true" />
     <fitField id="2" dataLabel="@Strings.FitPerfLabel" unitLabel="@Strings.FitPerfUnit" sortOrder="2" precision="0" displayInActivityLaps="true" />
     <fitField id="3" dataLabel="@Strings.FitWorkloadLabel" unitLabel="@Strings.FitWeightUnit" sortOrder="3" precision="0" displayInActivityLaps="true" />
-    <fitField id="5" dataLabel="@Strings.FitExerciseLabel" unitLabel="@Strings.UnitEmpty" sortOrder="4" displayInActivityLaps="true" />
+    <fitField id="5" dataLabel="@Strings.FitExerciseLabel" unitLabel="@Strings.UnitEmpty" sortOrder="4" displayInActivityLaps="false" />
 
     <fitField id="4" dataLabel="@Strings.FitTotalSessionLabel" unitLabel="@Strings.FitWeightUnit" sortOrder="5" precision="0" displayInActivitySummary="true" />
     <fitField id="6" dataLabel="@Strings.FitAverageLabel" unitLabel="@Strings.UnitEmpty" sortOrder="6" displayInActivitySummary="true" />

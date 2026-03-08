@@ -47,7 +47,8 @@ class EGYMSessionManager {
     private var _wattRecordsField as FitContributor.Field? = null;
     private var _methodNameField as FitContributor.Field? = null;
 
-    private var _hasPendingLapData = false;
+    private var _lapDataDirty = false;
+    
     // ========================================================
     // SESSION LIFECYCLE
     // ========================================================
@@ -202,6 +203,18 @@ class EGYMSessionManager {
             safeSetField(_wattRecordsField, safeRecords, "record summary");
         }
 
+        // Write the final lap only if there is unsaved exercise data.
+        // The caller must NOT call addLapAndReset() before stopAndSave()
+        // to avoid a double lap (session.stop() creates no additional lap).
+        if (_lapDataDirty) {
+            try {
+                session.addLap();
+            } catch (e) {
+                logSessionIssue("final addLap failed.");
+            }
+            _lapDataDirty = false;
+        }
+
         try {
             session.stop();
         } catch (e) {
@@ -245,6 +258,7 @@ class EGYMSessionManager {
             session = null;
         }
         nullifyFields();
+        _lapDataDirty = false;
     }
 
     // ========================================================
@@ -269,7 +283,7 @@ class EGYMSessionManager {
         safeSetField(_repsField, reps, "reps");
         safeSetField(_weightField, weight, "weight");
         safeSetField(_performanceField, performance, "performance");
-        _hasPendingLapData = true; // Merken, dass wir Daten zum Schreiben haben
+        _lapDataDirty = true;
     }
 
     //! Adds a lap marker safely when advancing to the next set.
@@ -279,13 +293,29 @@ class EGYMSessionManager {
         }
 
         try {
-            if (_hasPendingLapData) {
+        if (session != null && session.isRecording() && _lapDataDirty) {
                 session.addLap();
-                _hasPendingLapData = false;
+                
+                // Nach dem echten Speichern sofort den Puffer für die 
+                // unvermeidbare "Geisterrunde" beim Beenden leeren.
+                clearLapBuffers();
+                
+                _lapDataDirty = false; 
             }
         } catch (e) {
             logSessionIssue("session.addLap failed.");
         }
+    }
+
+    //! Löscht die aktuellen Werte im FIT-Puffer.
+    //! Verhindert, dass die automatische Abschlussrunde von Garmin
+    //! die Daten der vorherigen Übung übernimmt.
+    private function clearLapBuffers() as Void {
+        if (_repsField != null) { _repsField.setData(0); }
+        if (_weightField != null) { _weightField.setData(0); }
+        if (_performanceField != null) { _performanceField.setData(0); }
+        if (_workloadField != null) { _workloadField.setData(0); }
+        if (_exerciseNameField != null) { _exerciseNameField.setData(""); }
     }
 
     //! Reserved for live mid-session watt-records updates (currently disabled;
