@@ -46,6 +46,8 @@ class EGYMSessionManager {
     private var _programNameField as FitContributor.Field? = null;
     private var _wattRecordsField as FitContributor.Field? = null;
     private var _methodNameField as FitContributor.Field? = null;
+
+    private var _hasPendingLapData = false;
     // ========================================================
     // SESSION LIFECYCLE
     // ========================================================
@@ -267,6 +269,7 @@ class EGYMSessionManager {
         safeSetField(_repsField, reps, "reps");
         safeSetField(_weightField, weight, "weight");
         safeSetField(_performanceField, performance, "performance");
+        _hasPendingLapData = true; // Merken, dass wir Daten zum Schreiben haben
     }
 
     //! Adds a lap marker safely when advancing to the next set.
@@ -276,7 +279,10 @@ class EGYMSessionManager {
         }
 
         try {
-            session.addLap();
+            if (_hasPendingLapData) {
+                session.addLap();
+                _hasPendingLapData = false;
+            }
         } catch (e) {
             logSessionIssue("session.addLap failed.");
         }
