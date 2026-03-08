@@ -2,6 +2,10 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"name": "Efficiency-Drift-Analyzer",
+			"path": "../Efficiency-Drift-Analyzer"
 		}
 	],
 	"settings": {}

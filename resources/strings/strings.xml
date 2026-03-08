@@ -17,6 +17,7 @@
     <string id="FitMethodLabel">Method</string>
     <string id="FitWattRecordsLabel">Records</string>
     <string id="UnitNone">-</string>
+    <string id="UnitEmpty"></string>
     <!-- Stats View -->
     <string id="UIStats">My Stats</string>
     <string id="UIStatsSub">RM &amp; Watt overview</string>

@@ -302,116 +302,86 @@ class EGYMSessionManager {
         if (session == null) {
             return;
         }
+        // Hilfsvariablen für die Labels (macht den Code übersichtlicher)
+        var repsLabel = WatchUi.loadResource(Rez.Strings.FitRepsLabel) as String;
+        var weightLabel = WatchUi.loadResource(Rez.Strings.FitWeightLabel) as String;
+        var perfLabel = WatchUi.loadResource(Rez.Strings.FitPerfLabel) as String;
+        var workloadLabel = WatchUi.loadResource(Rez.Strings.FitWorkloadLabel) as String;
+        var exerciseLabel = WatchUi.loadResource(Rez.Strings.FitExerciseLabel) as String;
 
         try {
-            _repsField = session.createField(
-                WatchUi.loadResource(Rez.Strings.FitRepsLabel) as String,
-                REPS_FIELD_ID, FitContributor.DATA_TYPE_UINT16,
-                { :mesgType => FitContributor.MESG_TYPE_LAP }
-            );
+           _repsField = session.createField(repsLabel, REPS_FIELD_ID, FitContributor.DATA_TYPE_UINT16, { :mesgType => FitContributor.MESG_TYPE_LAP, :units => "reps" });
         } catch (e) {
             logSessionIssue("createField failed: reps");
             _repsField = null;
         }
 
         try {
-            _weightField = session.createField(
-                WatchUi.loadResource(Rez.Strings.FitWeightLabel) as String,
-                WEIGHT_FIELD_ID, FitContributor.DATA_TYPE_UINT16,
-                { :mesgType => FitContributor.MESG_TYPE_LAP }
-            );
-        } catch (e) {
+        _weightField = session.createField(weightLabel, WEIGHT_FIELD_ID, FitContributor.DATA_TYPE_UINT16, { :mesgType => FitContributor.MESG_TYPE_LAP, :units => "kg" });} catch (e) {
             logSessionIssue("createField failed: weight");
             _weightField = null;
         }
 
         try {
-            _performanceField = session.createField(
-                WatchUi.loadResource(Rez.Strings.FitPerfLabel) as String,
-                PERF_FIELD_ID, FitContributor.DATA_TYPE_UINT16,
-                { :mesgType => FitContributor.MESG_TYPE_LAP }
-            );
-        } catch (e) {
+       _performanceField = session.createField(perfLabel, PERF_FIELD_ID, FitContributor.DATA_TYPE_UINT16, { :mesgType => FitContributor.MESG_TYPE_LAP, :units => "pts" }); } catch (e) {
             logSessionIssue("createField failed: performance");
             _performanceField = null;
         }
 
         try {
-            _workloadField = session.createField(
-                WatchUi.loadResource(Rez.Strings.FitWorkloadLabel) as String,
-                WORKLOAD_FIELD_ID, FitContributor.DATA_TYPE_UINT32,
-                { :mesgType => FitContributor.MESG_TYPE_LAP }
-            );
-        } catch (e) {
+            _workloadField = session.createField(workloadLabel, WORKLOAD_FIELD_ID, FitContributor.DATA_TYPE_UINT32, { :mesgType => FitContributor.MESG_TYPE_LAP, :units => "kg" });       } catch (e) {
             logSessionIssue("createField failed: workload");
             _workloadField = null;
         }
 
         try {
-            _exerciseNameField = session.createField(
-                WatchUi.loadResource(Rez.Strings.FitExerciseLabel) as String,
-                EXERCISE_NAME_FIELD_ID, FitContributor.DATA_TYPE_STRING,
-                { :mesgType => FitContributor.MESG_TYPE_LAP, :count => 24 }
-            );
-        } catch (e) {
+     _exerciseNameField = session.createField(exerciseLabel, EXERCISE_NAME_FIELD_ID, FitContributor.DATA_TYPE_STRING, { :mesgType => FitContributor.MESG_TYPE_LAP, :count => 24 });  } catch (e) {
             logSessionIssue("createField failed: exercise name");
             _exerciseNameField = null;
         }
 
         try {
-            _totalWeightField = session.createField(
-                WatchUi.loadResource(Rez.Strings.FitTotalSessionLabel) as String,
-                TOTAL_SESSION_FIELD_ID, FitContributor.DATA_TYPE_UINT32,
-                { :mesgType => FitContributor.MESG_TYPE_SESSION }
-            );
-        } catch (e) {
+   _totalWeightField = session.createField(WatchUi.loadResource(Rez.Strings.FitTotalSessionLabel) as String, TOTAL_SESSION_FIELD_ID, FitContributor.DATA_TYPE_UINT32, { :mesgType => FitContributor.MESG_TYPE_SESSION, :units => "kg" });     } catch (e) {
             logSessionIssue("createField failed: session total");
             _totalWeightField = null;
         }
 
         try {
-            _avgPerformanceField = session.createField(
-                WatchUi.loadResource(Rez.Strings.FitAverageLabel) as String,
-                AVG_PERF_FIELD_ID, FitContributor.DATA_TYPE_STRING,
-                { :mesgType => FitContributor.MESG_TYPE_SESSION, :count => AVG_PERF_FIELD_COUNT }
-            );
-        } catch (e) {
+    _avgPerformanceField = session.createField(WatchUi.loadResource(Rez.Strings.FitAverageLabel) as String, AVG_PERF_FIELD_ID, FitContributor.DATA_TYPE_STRING, { :mesgType => FitContributor.MESG_TYPE_SESSION, :count => AVG_PERF_FIELD_COUNT });      } catch (e) {
             logSessionIssue("createField failed: average performance");
             _avgPerformanceField = null;
         }
 
         try {
-            _programNameField = session.createField(
-                WatchUi.loadResource(Rez.Strings.FitProgramLabel) as String,
-                PROGRAM_NAME_FIELD_ID, FitContributor.DATA_TYPE_STRING,
-                { :mesgType => FitContributor.MESG_TYPE_SESSION, :count => 24 }
-            );
-        } catch (e) {
+        _programNameField = session.createField(WatchUi.loadResource(Rez.Strings.FitProgramLabel) as String, PROGRAM_NAME_FIELD_ID, FitContributor.DATA_TYPE_STRING, { :mesgType => FitContributor.MESG_TYPE_SESSION, :count => 24 });    } catch (e) {
             logSessionIssue("createField failed: program name");
             _programNameField = null;
         }
 
         try {
-            _wattRecordsField = session.createField(
-                WatchUi.loadResource(Rez.Strings.FitWattRecordsLabel) as String,
-                WATT_RECORDS_FIELD_ID, FitContributor.DATA_TYPE_STRING,
-                { :mesgType => FitContributor.MESG_TYPE_SESSION, :count => WATT_RECORDS_FIELD_COUNT }
-            );
-        } catch (e) {
+          _wattRecordsField = session.createField(WatchUi.loadResource(Rez.Strings.FitWattRecordsLabel) as String, WATT_RECORDS_FIELD_ID, FitContributor.DATA_TYPE_STRING, { :mesgType => FitContributor.MESG_TYPE_SESSION, :count => WATT_RECORDS_FIELD_COUNT }); } catch (e) {
             logSessionIssue("createField failed: record summary");
             _wattRecordsField = null;
         }
 
         try {
-            _methodNameField = session.createField(
-                WatchUi.loadResource(Rez.Strings.FitMethodLabel) as String,
-                METHOD_NAME_FIELD_ID, FitContributor.DATA_TYPE_STRING,
-                { :mesgType => FitContributor.MESG_TYPE_SESSION, :count => METHOD_NAME_FIELD_COUNT }
-            );
-        } catch (e) {
+         _methodNameField = session.createField(WatchUi.loadResource(Rez.Strings.FitMethodLabel) as String, METHOD_NAME_FIELD_ID, FitContributor.DATA_TYPE_STRING, { :mesgType => FitContributor.MESG_TYPE_SESSION, :count => METHOD_NAME_FIELD_COUNT });     } catch (e) {
             logSessionIssue("createField failed: method name");
             _methodNameField = null;
         }
+        // DER FIX: Sofortige Initialisierung aller Felder.
+        // Ohne diese Initialwerte ignoriert Connect Web oft die Spaltendefinitionen der ersten Runde.
+        if (_repsField != null) { _repsField.setData(0); }
+        if (_weightField != null) { _weightField.setData(0); }
+        if (_performanceField != null) { _performanceField.setData(0); }
+        if (_workloadField != null) { _workloadField.setData(0); }
+        if (_exerciseNameField != null) { _exerciseNameField.setData(""); }
+        
+        if (_totalWeightField != null) { _totalWeightField.setData(0); }
+        if (_avgPerformanceField != null) { _avgPerformanceField.setData(""); }
+        if (_programNameField != null) { _programNameField.setData(""); }
+        if (_wattRecordsField != null) { _wattRecordsField.setData(""); }
+        if (_methodNameField != null) { _methodNameField.setData(""); }
     }
 
     //! Releases all field references for GC.

@@ -36,7 +36,7 @@ class EGYMApp extends Application.AppBase {
     // Storage schema for watch-side persisted data.
     private const CURRENT_STORAGE_SCHEMA_VERSION = 1;
     private const SANITY_LOG_PREFIX = "[EGYM sanity] ";
-    private const APP_VERSION_TAG = "v0.6.1";
+    private const APP_VERSION_TAG = "v0.6.3";
     // ========================================================
     // LIFECYCLE
     // ========================================================
