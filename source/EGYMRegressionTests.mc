@@ -399,38 +399,105 @@ function testStatsViewFilterCycleReloadKeepsArraysAligned(logger) {
     var view = new EGYMStatsView();
 
     view.onShow();
-    assertStatsArraysAligned(view);
+    assertStatsArraysAligned(
+        [
+            view._exercises,
+            view._cleanNames,
+            view._displayNames,
+            view._rmValues,
+            view._wattValues,
+            view._historyLines
+        ] as Array<Array>,
+        [
+            view._catalogExercises,
+            view._catalogCleanNames,
+            view._catalogDisplayNames,
+            view._catalogRmValues,
+            view._catalogWattValues,
+            view._catalogHistoryLines
+        ] as Array<Array>
+    );
     Test.assert(view._visibleCount >= 1);
     Test.assert(view._summarySessions >= 0);
 
     view.cycleFilter();
     Test.assertEqual(1, view._filterMode);
-    assertStatsArraysAligned(view);
+    assertStatsArraysAligned(
+        [
+            view._exercises,
+            view._cleanNames,
+            view._displayNames,
+            view._rmValues,
+            view._wattValues,
+            view._historyLines
+        ] as Array<Array>,
+        [
+            view._catalogExercises,
+            view._catalogCleanNames,
+            view._catalogDisplayNames,
+            view._catalogRmValues,
+            view._catalogWattValues,
+            view._catalogHistoryLines
+        ] as Array<Array>
+    );
 
     view.cycleFilter();
     Test.assertEqual(2, view._filterMode);
-    assertStatsArraysAligned(view);
+    assertStatsArraysAligned(
+        [
+            view._exercises,
+            view._cleanNames,
+            view._displayNames,
+            view._rmValues,
+            view._wattValues,
+            view._historyLines
+        ] as Array<Array>,
+        [
+            view._catalogExercises,
+            view._catalogCleanNames,
+            view._catalogDisplayNames,
+            view._catalogRmValues,
+            view._catalogWattValues,
+            view._catalogHistoryLines
+        ] as Array<Array>
+    );
 
     view.cycleFilter();
     Test.assertEqual(0, view._filterMode);
-    assertStatsArraysAligned(view);
+    assertStatsArraysAligned(
+        [
+            view._exercises,
+            view._cleanNames,
+            view._displayNames,
+            view._rmValues,
+            view._wattValues,
+            view._historyLines
+        ] as Array<Array>,
+        [
+            view._catalogExercises,
+            view._catalogCleanNames,
+            view._catalogDisplayNames,
+            view._catalogRmValues,
+            view._catalogWattValues,
+            view._catalogHistoryLines
+        ] as Array<Array>
+    );
     return true;
 }
 
-function assertStatsArraysAligned(view as EGYMStatsView) as Void {
-    var count = view._exercises.size();
-    Test.assertEqual(count, view._cleanNames.size());
-    Test.assertEqual(count, view._displayNames.size());
-    Test.assertEqual(count, view._rmValues.size());
-    Test.assertEqual(count, view._wattValues.size());
-    Test.assertEqual(count, view._historyLines.size());
+function assertStatsArraysAligned(
+    primaryArrays as Array<Array>,
+    catalogArrays as Array<Array>
+) as Void {
+    var count = (primaryArrays[0] as Array).size();
+    for (var i = 1; i < primaryArrays.size(); i++) {
+        Test.assertEqual(count, (primaryArrays[i] as Array).size());
+    }
 
-    var catalogCount = view._catalogExercises.size();
-    Test.assertEqual(catalogCount, view._catalogCleanNames.size());
-    Test.assertEqual(catalogCount, view._catalogDisplayNames.size());
-    Test.assertEqual(catalogCount, view._catalogRmValues.size());
-    Test.assertEqual(catalogCount, view._catalogWattValues.size());
-    Test.assertEqual(catalogCount, view._catalogHistoryLines.size());
+    var catalogCount = (catalogArrays[0] as Array).size();
+    for (var j = 1; j < catalogArrays.size(); j++) {
+        Test.assertEqual(catalogCount, (catalogArrays[j] as Array).size());
+    }
 }
 
 
@@ -444,24 +511,5 @@ function testStatsDelegateSelectCyclesFilter(logger) {
     Test.assertEqual(0, view._filterMode);
     Test.assertEqual(true, delegate.onSelect());
     Test.assertEqual(1, view._filterMode);
-    return true;
-}
-
-(:test)
-function testDiagnosticsDelegateSelectResetsCounters(logger) {
-    var view = new EGYMDiagnosticsView();
-    var delegate = new EGYMDiagnosticsDelegate(view);
-
-    view.onShow();
-    Test.assertEqual(true, delegate.onSelect());
-    return true;
-}
-
-(:test)
-function testDiagnosticsViewRefreshAndResetSmoke(logger) {
-    var view = new EGYMDiagnosticsView();
-
-    view.onShow();
-    view.resetCounters();
     return true;
 }

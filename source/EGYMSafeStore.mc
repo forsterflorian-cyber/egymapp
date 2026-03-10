@@ -17,18 +17,31 @@ class EGYMSafeStore {
     private static var _storageWriteErrors as Number = 0;
 
     // Raw accessors: never throw, always return null/false on failure.
-    static function getPropertyValue(key as String) {
+    // Intentionally returns an untyped raw value so corrupt settings payloads
+    // cannot force type assumptions at the call site.
+    static function getPropertyValue(key) {
+        if (key == null) {
+            return null;
+        }
+        var safeKeyStr = key.toString();
         try {
-            return Application.Properties.getValue(key);
+            var app = Application.getApp();
+            var rawValue = app.getProperty(safeKeyStr);
+            return rawValue;
         } catch (e) {
             _propertyReadErrors += 1;
         }
         return null;
     }
 
-    static function setPropertyValue(key as String, value) as Boolean {
+    static function setPropertyValue(key, value) as Boolean {
+        if (key == null) {
+            return false;
+        }
+        var safeKeyStr = key.toString();
         try {
-            Application.Properties.setValue(key, value);
+            var app = Application.getApp();
+            app.setProperty(safeKeyStr, value);
             return true;
         } catch (e) {
             _propertyWriteErrors += 1;
@@ -45,6 +58,18 @@ class EGYMSafeStore {
         return null;
     }
 
+    (:low_mem)
+    static function setStorageValue(key as String, value) as Boolean {
+        try {
+            Storage.setValue(key, value);
+            return true;
+        } catch (e) {
+            _storageWriteErrors += 1;
+        }
+        return false;
+    }
+
+    (:high_res)
     static function setStorageValue(key as String, value) as Boolean {
         try {
             if (Storage.getValue(key) == value) {
@@ -59,11 +84,27 @@ class EGYMSafeStore {
     }
 
     // Session checkpoint helpers
+    (:low_mem)
+    static function saveCheckpoint(data as Dictionary?) as Boolean {
+        return true;
+    }
+
+    (:high_res)
     static function saveCheckpoint(data as Dictionary?) as Boolean {
         if (data == null) {
             return false;
         }
-        return setStorageValue(EGYMKeys.SESSION_CHECKPOINT, data);
+        var savedCheckpoint = setStorageValue(
+            EGYMKeys.SESSION_CHECKPOINT,
+            prepareCheckpointForStorage(data)
+        );
+        if (!savedCheckpoint) {
+            return false;
+        }
+        return setStorageValue(
+            EGYMKeys.SESSION_CHECKPOINT_PROFILE,
+            getCheckpointProfileName()
+        );
     }
 
     static function loadCheckpoint() as Dictionary? {
@@ -76,12 +117,86 @@ class EGYMSafeStore {
         return isValidCheckpoint(checkpoint) ? checkpoint : null;
     }
 
+    (:low_mem)
+    static function loadCheckpointForCurrentProfile() as Dictionary? {
+        clearCheckpoint();
+        return null;
+    }
+
+    (:high_res)
+    static function loadCheckpointForCurrentProfile() as Dictionary? {
+        if (!shouldLoadCheckpointForCurrentProfile()) {
+            clearCheckpoint();
+            return null;
+        }
+        return loadCheckpoint();
+    }
+
     static function clearCheckpoint() as Boolean {
-        return deleteStorageValue(EGYMKeys.SESSION_CHECKPOINT);
+        var clearedCheckpoint = deleteStorageValue(EGYMKeys.SESSION_CHECKPOINT);
+        var clearedProfile = deleteStorageValue(EGYMKeys.SESSION_CHECKPOINT_PROFILE);
+        return clearedCheckpoint && clearedProfile;
     }
 
     static function hasCheckpoint() as Boolean {
         return loadCheckpoint() != null;
+    }
+
+    (:low_mem)
+    private static function prepareCheckpointForStorage(data as Dictionary) as Dictionary {
+        var payload = {} as Dictionary;
+        copyCheckpointField(payload, data, "version");
+        copyCheckpointField(payload, data, "timestampMs");
+        copyCheckpointField(payload, data, "phase");
+        copyCheckpointField(payload, data, "index");
+        copyCheckpointField(payload, data, "round");
+        copyCheckpointField(payload, data, "activeProg");
+        copyCheckpointField(payload, data, "setCount");
+        copyCheckpointField(payload, data, "sessionTotalKg");
+        copyCheckpointField(payload, data, "zirkel");
+        copyCheckpointField(payload, data, "isIndividualMode");
+        copyCheckpointField(payload, data, "isTestModeActive");
+        copyCheckpointField(payload, data, "currentWeight");
+        copyCheckpointField(payload, data, "qualityValue");
+        copyCheckpointField(payload, data, "breakElapsedSec");
+        return payload;
+    }
+
+    (:high_res)
+    private static function prepareCheckpointForStorage(data as Dictionary) as Dictionary {
+        return data;
+    }
+
+    (:low_mem)
+    private static function shouldLoadCheckpointForCurrentProfile() as Boolean {
+        return getCheckpointProfileMarker().equals(getCheckpointProfileName());
+    }
+
+    (:high_res)
+    private static function shouldLoadCheckpointForCurrentProfile() as Boolean {
+        var marker = getCheckpointProfileMarker();
+        return marker.length() == 0 || marker.equals(getCheckpointProfileName());
+    }
+
+    (:low_mem)
+    private static function getCheckpointProfileName() as String {
+        return "instinct_low_mem";
+    }
+
+    (:high_res)
+    private static function getCheckpointProfileName() as String {
+        return "standard";
+    }
+
+    private static function copyCheckpointField(
+        target as Dictionary,
+        source as Dictionary,
+        key as String
+    ) as Void {
+        if (!source.hasKey(key)) {
+            return;
+        }
+        target[key] = source[key];
     }
 
     static function deleteStorageValue(key as String) as Boolean {
@@ -123,24 +238,99 @@ class EGYMSafeStore {
     }
 
     // Typed convenience helpers with caller-provided fallbacks.
-    static function getPropertyBool(key as String, fallback as Boolean) as Boolean {
-        return toBool(getPropertyValue(key), fallback);
+    static function getPropertyBool(key, fallback as Boolean) as Boolean {
+        if (key == null) {
+            return fallback;
+        }
+        var val = getPropertyValue(key);
+        if (val == null) {
+            return fallback;
+        }
+        if (val instanceof Lang.Boolean) {
+            return val as Boolean;
+        }
+        if (val instanceof Lang.Number) {
+            return (val as Number) != 0;
+        }
+        if (val instanceof Lang.String) {
+            var lower = (val as String).toLower();
+            if (lower.equals("true") || lower.equals("1") || lower.equals("yes") || lower.equals("on")) {
+                return true;
+            }
+            if (lower.equals("false") || lower.equals("0") || lower.equals("no") || lower.equals("off")) {
+                return false;
+            }
+        }
+        return fallback;
     }
 
     static function getStorageBool(key as String, fallback as Boolean) as Boolean {
         return toBool(getStorageValue(key), fallback);
     }
 
-    static function getPropertyNumber(key as String, fallback as Number) as Number {
-        return toNumber(getPropertyValue(key), fallback);
+    static function getPropertyNumber(key, fallback as Number) as Number {
+        if (key == null) {
+            return fallback;
+        }
+        var val = getPropertyValue(key);
+        if (val == null) {
+            return fallback;
+        }
+        if (val instanceof Lang.Number) {
+            return val as Number;
+        }
+        if (val instanceof Lang.Boolean) {
+            return (val as Boolean) ? 1 : 0;
+        }
+        if (val instanceof Lang.String) {
+            var parsed = (val as String).toNumber();
+            if (parsed != null) {
+                return parsed;
+            }
+            return fallback;
+        }
+        if (val has :toNumber) {
+            try {
+                var converted = val.toNumber();
+                if (converted != null && converted instanceof Lang.Number) {
+                    return converted as Number;
+                }
+            } catch (e) {
+                _propertyReadErrors += 1;
+            }
+        }
+        return fallback;
     }
 
     static function getStorageNumber(key as String, fallback as Number) as Number {
         return toNumber(getStorageValue(key), fallback);
     }
 
-    static function getPropertyString(key as String, fallback as String) as String {
-        return toStringValue(getPropertyValue(key), fallback);
+    static function getPropertyString(key, fallback as String) as String {
+        if (key == null) {
+            return fallback;
+        }
+        var val = getPropertyValue(key);
+        if (val == null) {
+            return fallback;
+        }
+        if (val instanceof Lang.String) {
+            return val as String;
+        }
+        if (val instanceof Lang.Boolean || val instanceof Lang.Number) {
+            return val.toString();
+        }
+        if (val has :toString) {
+            try {
+                var converted = val.toString();
+                if (converted != null && converted instanceof Lang.String) {
+                    return converted as String;
+                }
+            } catch (e) {
+                _propertyReadErrors += 1;
+            }
+        }
+        return fallback;
     }
 
     static function getStorageString(key as String, fallback as String) as String {
@@ -165,6 +355,10 @@ class EGYMSafeStore {
             }
         }
         return result;
+    }
+
+    static function getCheckpointProfileMarker() as String {
+        return getStorageString(EGYMKeys.SESSION_CHECKPOINT_PROFILE, "");
     }
 
     // Coercion helpers used by both property and storage readers.
@@ -225,7 +419,20 @@ class EGYMSafeStore {
         if (value instanceof Lang.String) {
             return value as String;
         }
-        return value.toString();
+        if (value instanceof Lang.Boolean || value instanceof Lang.Number) {
+            return value.toString();
+        }
+        if (value has :toString) {
+            try {
+                var converted = value.toString();
+                if (converted != null && converted instanceof Lang.String) {
+                    return converted as String;
+                }
+            } catch (e) {
+                System.println("[EGYM store] String coercion failed; using fallback.");
+            }
+        }
+        return fallback;
     }
 
     // ========================================================

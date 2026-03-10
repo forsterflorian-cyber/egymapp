@@ -38,10 +38,30 @@ class EGYMWeightPickerView extends WatchUi.View {
         _weight = currentRM;
     }
 
+    (:low_mem)
+    function onShow() as Void {
+        _sTitle = EGYMInstinctText.getWeightPickerTitle();
+        _sChange = EGYMInstinctText.getWeightPickerChange();
+        _sConfirm = EGYMInstinctText.getWeightPickerConfirm();
+        _layoutDirty = true;
+    }
+
+    (:high_res)
     function onShow() as Void {
         _sTitle = WatchUi.loadResource(Rez.Strings.UIStrengthTest) as String;
         _sChange = WatchUi.loadResource(Rez.Strings.UIPickerChange) as String;
         _sConfirm = WatchUi.loadResource(Rez.Strings.UIPickerConfirm) as String;
+        _layoutDirty = true;
+    }
+
+    function release() as Void {
+        _displayName = "";
+        _sTitle = "";
+        _sChange = "";
+        _sConfirm = "";
+        _lastWeightStr = "";
+        _lastWeightWidth = 0;
+        _kgWidth = 0;
         _layoutDirty = true;
     }
 
@@ -60,6 +80,12 @@ class EGYMWeightPickerView extends WatchUi.View {
     }
 
     function onUpdate(dc as Graphics.Dc) as Void  {
+        var isInstinct = EGYMBuildProfile.isInstinctLowMemoryBuild();
+        var titleFont = isInstinct ? Graphics.FONT_TINY : Graphics.FONT_XTINY;
+        var nameFont = isInstinct ? Graphics.FONT_TINY : Graphics.FONT_SMALL;
+        var weightFont = isInstinct ? Graphics.FONT_MEDIUM : Graphics.FONT_NUMBER_MEDIUM;
+        var unitFont = isInstinct ? Graphics.FONT_TINY : Graphics.FONT_SMALL;
+
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
 
@@ -76,17 +102,17 @@ class EGYMWeightPickerView extends WatchUi.View {
             _hintY1 = (h * 0.72).toNumber();
             _hintY2 = (h * 0.80).toNumber();
             
-            _kgWidth = dc.getTextWidthInPixels(" kg", Graphics.FONT_SMALL);
+            _kgWidth = dc.getTextWidthInPixels(" kg", unitFont);
             _layoutDirty = false;
         }
 
         // --- 1. Title ---
-        dc.setColor(0xff5500, -1);
-        dc.drawText(w / 2, _titleY, Graphics.FONT_XTINY, _sTitle, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(Graphics.COLOR_WHITE, -1);
+        dc.drawText(w / 2, _titleY, titleFont, _sTitle, Graphics.TEXT_JUSTIFY_CENTER);
 
         // --- 2. Exercise name ---
         dc.setColor(Graphics.COLOR_WHITE, -1);
-        dc.drawText(w / 2, _nameY, Graphics.FONT_SMALL, _displayName, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(w / 2, _nameY, nameFont, _displayName, Graphics.TEXT_JUSTIFY_CENTER);
 
         // --- 3. Weight Number + Suffix ---
         var weightStr = _weight.toString();
@@ -94,23 +120,23 @@ class EGYMWeightPickerView extends WatchUi.View {
         // Only measure width if the string changed
         if (!weightStr.equals(_lastWeightStr)) {
             _lastWeightStr = weightStr;
-            _lastWeightWidth = dc.getTextWidthInPixels(weightStr, Graphics.FONT_NUMBER_MEDIUM);
+            _lastWeightWidth = dc.getTextWidthInPixels(weightStr, weightFont);
         }
         
         var gap = 4;
         var startX = (w - (_lastWeightWidth + gap + _kgWidth)) / 2;
 
-        dc.setColor(0xffaa00, -1);
-        dc.drawText(startX, _weightY, Graphics.FONT_NUMBER_MEDIUM, weightStr,
+        dc.setColor(Graphics.COLOR_WHITE, -1);
+        dc.drawText(startX, _weightY, weightFont, weightStr,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
         
-        dc.setColor(0xaaaaaa, -1);
-        dc.drawText(startX + _lastWeightWidth + gap, _weightY, Graphics.FONT_SMALL, " kg",
+        dc.setColor(Graphics.COLOR_WHITE, -1);
+        dc.drawText(startX + _lastWeightWidth + gap, _weightY, unitFont, " kg",
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
 
         // --- 4. Interaction Hints ---
-        dc.setColor(Graphics.COLOR_LT_GRAY, -1);
-        dc.drawText(w / 2, _hintY1, Graphics.FONT_XTINY, _sChange, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(w / 2, _hintY2, Graphics.FONT_XTINY, _sConfirm, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.setColor(Graphics.COLOR_WHITE, -1);
+        dc.drawText(w / 2, _hintY1, titleFont, _sChange, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(w / 2, _hintY2, titleFont, _sConfirm, Graphics.TEXT_JUSTIFY_CENTER);
     }
 }

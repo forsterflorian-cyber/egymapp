@@ -4,6 +4,7 @@ import Toybox.Lang;
 import Toybox.Application;
 import Toybox.System;
 
+(:high_res)
 class EGYMStatsView extends WatchUi.View {
     private const FILTER_ALL = 0;
     private const FILTER_RM = 1;
@@ -84,6 +85,37 @@ class EGYMStatsView extends WatchUi.View {
         _catalogWattValues = [] as Array<Number>;
         _catalogHistoryLines = [] as Array<String>;
         _needsDeferredHistoryLoad = false;
+    }
+
+    function release() as Void {
+        _exercises = [] as Array<String>;
+        _cleanNames = [] as Array<String>;
+        _displayNames = [] as Array<String>;
+        _rmValues = [] as Array<Number>;
+        _wattValues = [] as Array<Number>;
+        _historyLines = [] as Array<String>;
+        _catalogExercises = [] as Array<String>;
+        _catalogCleanNames = [] as Array<String>;
+        _catalogDisplayNames = [] as Array<String>;
+        _catalogRmValues = [] as Array<Number>;
+        _catalogWattValues = [] as Array<Number>;
+        _catalogHistoryLines = [] as Array<String>;
+        _visibleCount = 0;
+        _summarySessions = 0;
+        _summaryVolume = 0;
+        _summaryStreak = 0;
+        _catalogReady = false;
+        _historyLoaded = false;
+        _needsDeferredHistoryLoad = false;
+        _sTitle = "";
+        _sSessions = "";
+        _sVolume = "";
+        _sStreak = "";
+        _sNoData = "";
+        _sFilter = "";
+        _sFilterAll = "";
+        _sFilterRm = "";
+        _sFilterWatt = "";
     }
 
     function calculateItemsPerPage(dc as Graphics.Dc) as Void {

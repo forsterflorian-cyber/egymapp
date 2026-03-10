@@ -18,7 +18,7 @@ class EGYMApp extends Application.AppBase {
     // Instance state
     // The main workout view, created once in getInitialView().
     // Accessed by delegates, so kept package-visible.
-    var mView as EGYMView?;
+    var mView;
 
     // Lazy-loaded lookup tables (releasable)
     private var _resolvedExNames as Dictionary<String, String>?;
@@ -77,6 +77,11 @@ class EGYMApp extends Application.AppBase {
         _calibrationResetCompleted = false;
     }
 
+    (:low_mem)
+    private function runLearnedCalibrationCleanup() as Void {
+    }
+
+    (:high_res)
     private function runLearnedCalibrationCleanup() as Void {
         var activeGen = EGYMSafeStore.getStorageNumber(EGYMKeys.LEARNED_FACTOR_GEN, 0);
         if (activeGen <= 0) {
@@ -185,10 +190,26 @@ class EGYMApp extends Application.AppBase {
         releaseResources();
     }
 
+    (:low_mem)
     function refreshRecoverableCheckpoint() as Void {
-        _recoverableCheckpoint = EGYMSafeStore.loadCheckpoint();
+        _recoverableCheckpoint = null;
+        EGYMSafeStore.clearCheckpoint();
     }
 
+    (:high_res)
+    function refreshRecoverableCheckpoint() as Void {
+        _recoverableCheckpoint = EGYMSafeStore.loadCheckpointForCurrentProfile();
+    }
+
+    (:low_mem)
+    function hasRecoverableCheckpoint() as Boolean {
+        if (_recoverableCheckpoint != null) {
+            _recoverableCheckpoint = null;
+        }
+        return false;
+    }
+
+    (:high_res)
     function hasRecoverableCheckpoint() as Boolean {
         return _recoverableCheckpoint != null;
     }
@@ -198,7 +219,13 @@ class EGYMApp extends Application.AppBase {
         EGYMSafeStore.clearCheckpoint();
     }
 
-    function tryResumeRecoverableCheckpoint(view as EGYMView) as Boolean {
+    (:low_mem)
+    function tryResumeRecoverableCheckpoint(view) as Boolean {
+        return false;
+    }
+
+    (:high_res)
+    function tryResumeRecoverableCheckpoint(view) as Boolean {
         if (_recoverableCheckpoint == null) {
             return false;
         }
@@ -215,6 +242,12 @@ class EGYMApp extends Application.AppBase {
     // INPUT NAME RESOLUTION
     // ========================================================
 
+    (:low_mem)
+    private function initExerciseNameMap() as Void {
+        _resolvedExNames = null;
+    }
+
+    (:high_res)
     private function initExerciseNameMap() as Void {
         if (_resolvedExNames != null) {
             return;
@@ -247,6 +280,12 @@ class EGYMApp extends Application.AppBase {
         };
     }
 
+    (:low_mem)
+    private function initGoalNameMap() as Void {
+        _resolvedGoalNames = null;
+    }
+
+    (:high_res)
     private function initGoalNameMap() as Void {
         if (_resolvedGoalNames != null) {
             return;
@@ -275,6 +314,12 @@ class EGYMApp extends Application.AppBase {
         };
     }
 
+    (:low_mem)
+    private function initMethodNameMap() as Void {
+        _resolvedMethodNames = null;
+    }
+
+    (:high_res)
     private function initMethodNameMap() as Void {
         if (_resolvedMethodNames != null) {
             return;
@@ -294,6 +339,12 @@ class EGYMApp extends Application.AppBase {
     // HELPER ACCESSORS
     // ========================================================
 
+    (:low_mem)
+    function getExName(key as String) as String {
+        return EGYMInstinctText.getExerciseName(key);
+    }
+
+    (:high_res)
     function getExName(key as String) as String {
         initExerciseNameMap();
         if (_resolvedExNames != null && _resolvedExNames.hasKey(key)) {
@@ -302,6 +353,12 @@ class EGYMApp extends Application.AppBase {
         return key;
     }
 
+    (:low_mem)
+    function getGoalName(key as String) as String {
+        return EGYMInstinctText.getGoalName(key);
+    }
+
+    (:high_res)
     function getGoalName(key as String) as String {
         initGoalNameMap();
         if (_resolvedGoalNames != null && _resolvedGoalNames.hasKey(key)) {
@@ -310,6 +367,12 @@ class EGYMApp extends Application.AppBase {
         return key;
     }
 
+    (:low_mem)
+    function getMethodName(key as String) as String {
+        return EGYMInstinctText.getMethodName(key);
+    }
+
+    (:high_res)
     function getMethodName(key as String) as String {
         initMethodNameMap();
         if (_resolvedMethodNames != null && _resolvedMethodNames.hasKey(key)) {
@@ -390,6 +453,15 @@ class EGYMApp extends Application.AppBase {
     // VIEW SETUP
     // ========================================================
 
+    (:low_mem)
+    function ensureMainView() as EGYMViewLowMem {
+        if (mView == null || !(mView instanceof EGYMViewLowMem)) {
+            mView = new EGYMViewLowMem();
+        }
+        return mView as EGYMViewLowMem;
+    }
+
+    (:high_res)
     function ensureMainView() as EGYMView {
         if (mView == null) {
             mView = new EGYMView();
@@ -397,6 +469,12 @@ class EGYMApp extends Application.AppBase {
         return mView as EGYMView;
     }
 
+    (:low_mem)
+    function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {
+        return [createStartMenu(), new EGYMStartMenuDelegate()];
+    }
+
+    (:high_res)
     function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {
         var startMenu = createStartMenu();
         return [startMenu, new EGYMStartMenuDelegate()];
@@ -518,6 +596,31 @@ class EGYMApp extends Application.AppBase {
         return _cachedMenuCircleSub;
     }
 
+    (:low_mem)
+    function refreshRuntimeSnapshots() as Void {
+        var schema = EGYMSafeStore.getStorageNumber(
+            EGYMKeys.STORAGE_SCHEMA_VERSION,
+            _cachedStorageSchema
+        );
+        if (schema > 0) {
+            _cachedStorageSchema = schema;
+        }
+
+        var programs = EGYMConfig.getActivePrograms();
+        var currentIndex = EGYMSafeStore.getPropertyNumber(EGYMKeys.ACTIVE_PROGRAM, 0);
+        if (currentIndex < 0 || currentIndex >= programs.size()) {
+            currentIndex = 0;
+        }
+
+        _cachedMenuProgramSub = EGYMInstinctText.getProgramEmptyLabel();
+        if (programs.size() > 0) {
+            _cachedMenuProgramSub = EGYMConfig.getProgramDisplayString(programs[currentIndex]);
+        }
+
+        _cachedMenuCircleSub = EGYMConfig.getCircleName();
+    }
+
+    (:high_res)
     function refreshRuntimeSnapshots() as Void {
         var schema = EGYMSafeStore.getStorageNumber(
             EGYMKeys.STORAGE_SCHEMA_VERSION,
@@ -582,42 +685,65 @@ class EGYMApp extends Application.AppBase {
         EGYMSafeStore.setStorageValue(EGYMKeys.STAT_LAST_DAY, lastDay < 0 ? 0 : lastDay);
     }
 
+    (:low_mem)
     function syncAndMigrateProperties() as Void {
-        var curBool = EGYMSafeStore.getPropertyBool(EGYMKeys.IS_EGYM_PLUS, true);
-        var lastPlusRaw = EGYMSafeStore.getStorageValue(EGYMKeys.LAST_SYNC_IS_EGYM_PLUS);
-        var lastBool = (lastPlusRaw instanceof Boolean) ? (lastPlusRaw as Boolean) : curBool;
+        try {
+            var plusKey = EGYMKeys.IS_EGYM_PLUS.toString();
+            var curBool = EGYMSafeStore.getPropertyBool(plusKey, true);
+            var lastPlusRaw = EGYMSafeStore.getStorageValue(EGYMKeys.LAST_SYNC_IS_EGYM_PLUS);
+            var lastBool = EGYMSafeStore.toBool(lastPlusRaw, curBool);
 
-        if (lastPlusRaw != null && curBool != lastBool) {
-            if (!curBool) {
+            if (lastPlusRaw != null && curBool != lastBool && !curBool) {
                 EGYMSafeStore.setPropertyValue(EGYMKeys.ACTIVE_PROGRAM, 0);
             }
+            EGYMSafeStore.setStorageValue(EGYMKeys.LAST_SYNC_IS_EGYM_PLUS, curBool);
+        } catch (e) {
+            EGYMSafeStore.setPropertyValue(EGYMKeys.ACTIVE_PROGRAM, 0);
+            EGYMSafeStore.setStorageValue(EGYMKeys.LAST_SYNC_IS_EGYM_PLUS, true);
         }
-        EGYMSafeStore.setStorageValue(EGYMKeys.LAST_SYNC_IS_EGYM_PLUS, curBool);
+    }
 
-        var exercises = (mView != null) ? mView.getKnownExercises() : EGYMConfig.getCleanedExerciseNames();
-        
-        // Defensive cast: ignore unexpected non-array values.
-        var exercisesArray = [] as Array<String>;
-        if (exercises instanceof Array) {
-            exercisesArray = exercises as Array<String>;
-        }
+    (:high_res)
+    function syncAndMigrateProperties() as Void {
+        try {
+            var plusKey = EGYMKeys.IS_EGYM_PLUS.toString();
+            var curBool = EGYMSafeStore.getPropertyBool(plusKey, true);
+            var lastPlusRaw = EGYMSafeStore.getStorageValue(EGYMKeys.LAST_SYNC_IS_EGYM_PLUS);
+            var lastBool = EGYMSafeStore.toBool(lastPlusRaw, curBool);
 
-        var prefixes = [EGYMKeys.RM_PREFIX, EGYMKeys.WATT_PREFIX];
-        for (var i = 0; i < exercisesArray.size(); i++) {
-            for (var p = 0; p < prefixes.size(); p++) {
-                var key = prefixes[p] + exercisesArray[i];
-                var propVal = EGYMSafeStore.getPropertyValue(key);
-                if (propVal != null) {
-                    var propNum = EGYMSafeStore.toNumber(propVal, -1);
+            if (lastPlusRaw != null && curBool != lastBool) {
+                if (!curBool) {
+                    EGYMSafeStore.setPropertyValue(EGYMKeys.ACTIVE_PROGRAM, 0);
+                }
+            }
+            EGYMSafeStore.setStorageValue(EGYMKeys.LAST_SYNC_IS_EGYM_PLUS, curBool);
+
+            var exercises = (mView != null) ? mView.getKnownExercises() : EGYMConfig.getCleanedExerciseNames();
+            
+            // Defensive cast: ignore unexpected non-array values.
+            var exercisesArray = [] as Array<String>;
+            if (exercises instanceof Array) {
+                exercisesArray = exercises as Array<String>;
+            }
+
+            var prefixes = [EGYMKeys.RM_PREFIX, EGYMKeys.WATT_PREFIX];
+            for (var i = 0; i < exercisesArray.size(); i++) {
+                for (var p = 0; p < prefixes.size(); p++) {
+                    var key = (prefixes[p].toString() + exercisesArray[i]).toString();
+                    var propNum = EGYMSafeStore.getPropertyNumber(key, -1);
                     if (propNum > 0) {
-                        var lastSync = EGYMSafeStore.getStorageNumber(key + "_lastSync", 0);
+                        var lastSyncKey = (key + "_lastSync").toString();
+                        var lastSync = EGYMSafeStore.getStorageNumber(lastSyncKey, 0);
                         if (propNum != lastSync) {
                             EGYMSafeStore.setStorageValue(key, propNum);
-                            EGYMSafeStore.setStorageValue(key + "_lastSync", propNum);
+                            EGYMSafeStore.setStorageValue(lastSyncKey, propNum);
                         }
                     }
                 }
             }
+        } catch (e) {
+            EGYMSafeStore.setPropertyValue(EGYMKeys.ACTIVE_PROGRAM, 0);
+            EGYMSafeStore.setStorageValue(EGYMKeys.LAST_SYNC_IS_EGYM_PLUS, true);
         }
     }
 
@@ -625,6 +751,11 @@ class EGYMApp extends Application.AppBase {
     // DEBUG SANITY VALIDATION
     // ========================================================
 
+    (:low_mem)
+    private function runStartupSanityValidator() as Void {
+    }
+
+    (:high_res)
     private function runStartupSanityValidator() as Void {
         var issues = [] as Array<String>;
         var warnings = [] as Array<String>;
@@ -701,9 +832,14 @@ class EGYMApp extends Application.AppBase {
         }
     }
 
-    private function hasPropertyKey(key as String) as Boolean {
+    private function hasPropertyKey(key) as Boolean {
+        if (key == null) {
+            return false;
+        }
+        var safeKeyStr = key.toString();
         try {
-            Application.Properties.getValue(key);
+            var app = Application.getApp();
+            app.getProperty(safeKeyStr);
             return true;
         } catch (e) {
             // Broad catch intentional: Connect IQ throws different exception
@@ -729,6 +865,18 @@ class EGYMApp extends Application.AppBase {
     // START MENU
     // ========================================================
 
+    (:low_mem)
+    function createStartMenu() as WatchUi.Menu2 {
+        refreshRecoverableCheckpoint();
+        var isPlus = EGYMSafeStore.getPropertyBool(EGYMKeys.IS_EGYM_PLUS, true);
+        var startMenu = new WatchUi.Menu2({
+            :title => EGYMInstinctText.getStartMenuTitle(isPlus)
+        });
+        populateStartMenuItems(startMenu);
+        return startMenu;
+    }
+
+    (:high_res)
     function createStartMenu() as WatchUi.Menu2 {
         refreshRecoverableCheckpoint();
         var isPlus = EGYMSafeStore.getPropertyBool(EGYMKeys.IS_EGYM_PLUS, true);
@@ -741,6 +889,42 @@ class EGYMApp extends Application.AppBase {
             menuTitle += " " + formatMenuVersionTag(versionText);
         }
         var startMenu = new WatchUi.Menu2({ :title => menuTitle });
+        populateStartMenuItems(startMenu);
+        return startMenu;
+    }
+
+    (:low_mem)
+    private function populateStartMenuItems(startMenu as WatchUi.Menu2) as Void {
+        startMenu.addItem(
+            new WatchUi.MenuItem(
+                EGYMInstinctText.getStartCircleLabel(),
+                null,
+                "select_circle",
+                EGYMBuildProfile.getMenuItemOptions()
+            )
+        );
+
+        startMenu.addItem(
+            new WatchUi.MenuItem(
+                EGYMInstinctText.getStartProgramLabel(),
+                null,
+                "select_program",
+                EGYMBuildProfile.getMenuItemOptions()
+            )
+        );
+
+        startMenu.addItem(
+            new WatchUi.MenuItem(
+                EGYMInstinctText.getStartTrainingLabel(),
+                null,
+                "start_workout",
+                EGYMBuildProfile.getMenuItemOptions()
+            )
+        );
+    }
+
+    (:high_res)
+    private function populateStartMenuItems(startMenu as WatchUi.Menu2) as Void {
 
         if (EGYMSafeStore.getStorageBool(EGYMKeys.LAST_SETUP_EXISTS, false)) {
             startMenu.addItem(
@@ -748,7 +932,7 @@ class EGYMApp extends Application.AppBase {
                     WatchUi.loadResource(Rez.Strings.UIRepeatLastSetup) as String,
                     getLastSetupMenuSubLabel(),
                     "repeat_last_setup",
-                    {}
+                    EGYMBuildProfile.getMenuItemOptions()
                 )
             );
         }
@@ -760,7 +944,7 @@ class EGYMApp extends Application.AppBase {
                     WatchUi.loadResource(Rez.Strings.UIRepeatLastFreeflow) as String,
                     WatchUi.loadResource(Rez.Strings.UIRepeatLastFreeflowSub) as String,
                     "repeat_last_freeflow",
-                    {}
+                    EGYMBuildProfile.getMenuItemOptions()
                 )
             );
         }
@@ -773,7 +957,7 @@ class EGYMApp extends Application.AppBase {
                 WatchUi.loadResource(Rez.Strings.UIMenuProgram) as String,
                 programSub,
                 "select_program",
-                {}
+                EGYMBuildProfile.getMenuItemOptions()
             )
         );
 
@@ -783,7 +967,7 @@ class EGYMApp extends Application.AppBase {
                 WatchUi.loadResource(Rez.Strings.UIChooseCircle) as String,
                 circleSub,
                 "select_circle",
-                {}
+                EGYMBuildProfile.getMenuItemOptions()
             )
         );
         var isTest = EGYMSafeStore.getPropertyBool(EGYMKeys.IS_TEST_MODE, false);
@@ -794,7 +978,7 @@ class EGYMApp extends Application.AppBase {
                 null,
                 "toggle_test",
                 isTest,
-                {}
+                EGYMBuildProfile.getMenuItemOptions()
             )
         );
 
@@ -803,7 +987,7 @@ class EGYMApp extends Application.AppBase {
                 WatchUi.loadResource(Rez.Strings.UIStartTraining) as String,
                 null,
                 "start_workout",
-                {}
+                EGYMBuildProfile.getMenuItemOptions()
             )
         );
 
@@ -812,7 +996,7 @@ class EGYMApp extends Application.AppBase {
                 WatchUi.loadResource(Rez.Strings.UIStats) as String,
                 WatchUi.loadResource(Rez.Strings.UIStatsSub) as String,
                 "open_stats",
-                {}
+                EGYMBuildProfile.getMenuItemOptions()
             )
         );
 
@@ -821,15 +1005,16 @@ class EGYMApp extends Application.AppBase {
                 WatchUi.loadResource(Rez.Strings.UIResetCalibration) as String,
                 getResetCalibrationSubLabel(),
                 "reset_calibration",
-                {}
+                EGYMBuildProfile.getMenuItemOptions()
             )
         );
-        return startMenu;
     }
+    (:high_res)
     private function getLastSetupMenuSubLabel() as String {
         return WatchUi.loadResource(Rez.Strings.UIRepeatLastSetupSub) as String;
     }
 
+    (:high_res)
     private function getResetCalibrationSubLabel() as String {
         if (_pendingCalibrationReset) {
             return WatchUi.loadResource(Rez.Strings.UIResetCalibrationConfirm) as String;
@@ -856,6 +1041,8 @@ class EGYMApp extends Application.AppBase {
         _resolvedGoalNames = null;
         _resolvedMethodNames = null;
         _exerciseAliasMap = null;
+        _cachedMenuProgramSub = "";
+        _cachedMenuCircleSub = "";
     }
 }
 

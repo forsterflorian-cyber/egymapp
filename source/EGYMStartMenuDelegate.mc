@@ -27,10 +27,10 @@ class EGYMStartMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     function initialize() {
         Menu2InputDelegate.initialize();
-        _isTestMode = EGYMSafeStore.getPropertyBool(EGYMKeys.IS_TEST_MODE, false);
+        _isTestMode = loadInitialTestMode();
     }
 
-    private function getWorkoutView() as EGYMView {
+    private function getWorkoutView() {
         var app = Application.getApp() as EGYMApp;
         return app.ensureMainView();
     }
@@ -76,26 +76,12 @@ class EGYMStartMenuDelegate extends WatchUi.Menu2InputDelegate {
             return;
         }
         if (idStr.equals("start_workout")) {
-            var view = getWorkoutView();
-            if (app.hasRecoverableCheckpoint()) {
-                WatchUi.pushView(
-                    new WatchUi.Confirmation("Training fortsetzen?"),
-                    new EGYMResumeCheckpointConfirmDelegate(self, view),
-                    WatchUi.SLIDE_UP
-                );
-            } else {
-                startTraining(view);
-            }
+            startWorkoutFromMenu(getWorkoutView(), app);
             return;
         }
 
         if (idStr.equals("open_stats")) {
-            var statsView = new EGYMStatsView();
-            WatchUi.pushView(
-                statsView,
-                new EGYMStatsDelegate(statsView),
-                WatchUi.SLIDE_UP
-            );
+            openStatsView(app);
             return;
         }
 
@@ -123,6 +109,38 @@ class EGYMStartMenuDelegate extends WatchUi.Menu2InputDelegate {
     // SUBMENU: Program Selection
     // ========================================================
 
+    (:low_mem)
+    private function openProgramMenu(parentItem as WatchUi.MenuItem) as Void {
+        var app = Application.getApp() as EGYMApp;
+        var progMenu = new WatchUi.Menu2({
+            :title => EGYMInstinctText.getProgramMenuTitle()
+        });
+        var programs = EGYMConfig.getActivePrograms();
+        var label = "";
+
+        for (var i = 0; i < programs.size(); i++) {
+            var p = programs[i] as Dictionary;
+
+            label = EGYMConfig.getProgramPrefix(p) + " " + app.getGoalName(EGYMConfig.getProgramGoalKey(p));
+
+            progMenu.addItem(
+                new WatchUi.MenuItem(
+                    label,
+                    null,
+                    "prog_" + i.toString(),
+                    EGYMBuildProfile.getMenuItemOptions()
+                )
+            );
+        }
+
+        WatchUi.pushView(
+            progMenu,
+            new ProgramMenuDelegate(parentItem),
+            WatchUi.SLIDE_LEFT
+        );
+    }
+
+    (:high_res)
     private function openProgramMenu(parentItem as WatchUi.MenuItem) as Void {
         var app = Application.getApp() as EGYMApp;
         var menuTitle = WatchUi.loadResource(Rez.Strings.UIMenuProgram) as String;
@@ -140,7 +158,12 @@ class EGYMStartMenuDelegate extends WatchUi.Menu2InputDelegate {
             subLabel = app.getMethodName(EGYMConfig.getProgramMethodKey(p)) + " " + EGYMConfig.getProgramRepsSpec(p) + " " + repsLabel;
 
             progMenu.addItem(
-                new WatchUi.MenuItem(label, subLabel, "prog_" + i.toString(), {})
+                new WatchUi.MenuItem(
+                    label,
+                    subLabel,
+                    "prog_" + i.toString(),
+                    EGYMBuildProfile.getMenuItemOptions()
+                )
             );
         }
 
@@ -155,6 +178,29 @@ class EGYMStartMenuDelegate extends WatchUi.Menu2InputDelegate {
     // SUBMENU: Circle Selection
     // ========================================================
 
+    (:low_mem)
+    private function openCircleMenu(parentItem as WatchUi.MenuItem) as Void {
+        var circleMenu = new WatchUi.Menu2({
+            :title => EGYMInstinctText.getCircleMenuTitle()
+        });
+
+        for (var circleId = 0; circleId < 4; circleId++) {
+            circleMenu.addItem(new WatchUi.MenuItem(
+                EGYMInstinctText.getCircleLabel(circleId),
+                null,
+                "circle_" + circleId.toString(),
+                EGYMBuildProfile.getMenuItemOptions()
+            ));
+        }
+
+        WatchUi.pushView(
+            circleMenu,
+            new EGYMCircleMenuDelegate(parentItem),
+            WatchUi.SLIDE_LEFT
+        );
+    }
+
+    (:high_res)
     private function openCircleMenu(parentItem as WatchUi.MenuItem) as Void {
         var circleMenu = new WatchUi.Menu2({
             :title => WatchUi.loadResource(Rez.Strings.UIChooseCircle) as String
@@ -163,25 +209,29 @@ class EGYMStartMenuDelegate extends WatchUi.Menu2InputDelegate {
         circleMenu.addItem(new WatchUi.MenuItem(
             WatchUi.loadResource(Rez.Strings.UIStrength) as String,
             WatchUi.loadResource(Rez.Strings.UIStrengthSub) as String,
-            "circle_0", {}
+            "circle_0",
+            EGYMBuildProfile.getMenuItemOptions()
         ));
 
         circleMenu.addItem(new WatchUi.MenuItem(
             WatchUi.loadResource(Rez.Strings.UILegs) as String,
             WatchUi.loadResource(Rez.Strings.UILegsSub) as String,
-            "circle_1", {}
+            "circle_1",
+            EGYMBuildProfile.getMenuItemOptions()
         ));
 
         circleMenu.addItem(new WatchUi.MenuItem(
             WatchUi.loadResource(Rez.Strings.UICustomCircuit) as String,
             WatchUi.loadResource(Rez.Strings.UICustomCircuitSub) as String,
-            "circle_2", {}
+            "circle_2",
+            EGYMBuildProfile.getMenuItemOptions()
         ));
 
         circleMenu.addItem(new WatchUi.MenuItem(
             WatchUi.loadResource(Rez.Strings.UIIndividual) as String,
             WatchUi.loadResource(Rez.Strings.UIIndividualSub) as String,
-            "circle_3", {}
+            "circle_3",
+            EGYMBuildProfile.getMenuItemOptions()
         ));
 
         WatchUi.pushView(
@@ -204,11 +254,55 @@ class EGYMStartMenuDelegate extends WatchUi.Menu2InputDelegate {
         EGYMSafeStore.setPropertyValue(EGYMKeys.IS_TEST_MODE, _isTestMode);
     }
 
+    (:low_mem)
+    private function loadInitialTestMode() as Boolean {
+        EGYMSafeStore.setPropertyValue(EGYMKeys.IS_TEST_MODE, false);
+        return false;
+    }
+
+    (:high_res)
+    private function loadInitialTestMode() as Boolean {
+        return EGYMSafeStore.getPropertyBool(EGYMKeys.IS_TEST_MODE, false);
+    }
+
+    (:low_mem)
+    private function startWorkoutFromMenu(view, app as EGYMApp) as Void {
+        startTraining(view);
+    }
+
+    (:high_res)
+    private function startWorkoutFromMenu(view, app as EGYMApp) as Void {
+        if (app.hasRecoverableCheckpoint()) {
+            WatchUi.pushView(
+                new WatchUi.Confirmation("Training fortsetzen?"),
+                new EGYMResumeCheckpointConfirmDelegate(self, view),
+                WatchUi.SLIDE_UP
+            );
+            return;
+        }
+        startTraining(view);
+    }
+
+    (:low_mem)
+    private function openStatsView(app as EGYMApp) as Void {
+        return;
+    }
+
+    (:high_res)
+    private function openStatsView(app as EGYMApp) as Void {
+        var statsView = new EGYMStatsView();
+        WatchUi.pushView(
+            statsView,
+            new EGYMStatsDelegate(statsView),
+            WatchUi.SLIDE_UP
+        );
+    }
+
     // ========================================================
     // START WORKOUT
     // ========================================================
 
-    private function startTraining(view as EGYMView) as Void {
+    private function startTraining(view) as Void {
         var app = Application.getApp() as EGYMApp;
         var circleId = EGYMSafeStore.getPropertyNumber(EGYMKeys.ACTIVE_CIRCLE, 0);
         if (circleId < 0 || circleId > 3) {
@@ -234,8 +328,9 @@ class EGYMStartMenuDelegate extends WatchUi.Menu2InputDelegate {
         startPreparedTraining(view, selectedZirkel, isIndividual, progIndex, circleId, true);
     }
 
+    (:low_mem)
     private function startPreparedTraining(
-        view as EGYMView,
+        view,
         selectedZirkel as Array<String>?,
         isIndividual as Boolean,
         progIndex as Number,
@@ -257,6 +352,65 @@ class EGYMStartMenuDelegate extends WatchUi.Menu2InputDelegate {
         if (activeZirkel == null) {
             activeZirkel = [] as Array<String>;
         }
+        activeZirkel = view.limitExercisesForProfile(activeZirkel);
+
+        (Application.getApp() as EGYMApp).discardRecoverableCheckpoint();
+
+        var programStarted = view.updateProgram(progIndex);
+        if (!programStarted) {
+            _trainingStarted = false;
+            WatchUi.requestUpdate();
+            return;
+        }
+
+        EGYMSafeStore.setStorageValue(EGYMKeys.LAST_ZIRKEL, activeZirkel);
+        if (persistSetup) {
+            saveLastSetupSnapshot(progIndex, circleId);
+        }
+        view.setTestMode(false);
+        view.isIndividualMode = isIndividual;
+        view.zirkel = activeZirkel as Array<String>;
+        if (activeZirkel.size() > 0) {
+            view.initExercisePhase();
+        } else {
+            view.refreshLabels();
+        }
+
+        WatchUi.pushView(view, new EGYMDelegate(view), WatchUi.SLIDE_LEFT);
+
+        if (_resetTimer != null) {
+            _resetTimer.stop();
+            _resetTimer = null;
+        }
+        _resetTimer = new Timer.Timer();
+        _resetTimer.start(method(:resetStartFlag), 1000, false);
+    }
+
+    (:high_res)
+    private function startPreparedTraining(
+        view,
+        selectedZirkel as Array<String>?,
+        isIndividual as Boolean,
+        progIndex as Number,
+        circleId as Number,
+        persistSetup as Boolean
+    ) as Void {
+        if (_trainingStarted) {
+            return;
+        }
+        _trainingStarted = true;
+
+        var app = Application.getApp() as EGYMApp;
+        var activeZirkel = selectedZirkel;
+        if (activeZirkel == null || activeZirkel.size() == 0) {
+            if (!isIndividual) {
+                activeZirkel = app.copyArray(app.getDefaultZirkel());
+            }
+        }
+        if (activeZirkel == null) {
+            activeZirkel = [] as Array<String>;
+        }
+        activeZirkel = view.limitExercisesForProfile(activeZirkel);
 
         (Application.getApp() as EGYMApp).discardRecoverableCheckpoint();
 
@@ -294,7 +448,13 @@ class EGYMStartMenuDelegate extends WatchUi.Menu2InputDelegate {
         _resetTimer.start(method(:resetStartFlag), 1000, false);
     }
 
-    function handleResumeCheckpointResponse(shouldResume as Boolean, view as EGYMView) as Void {
+    (:low_mem)
+    function handleResumeCheckpointResponse(shouldResume as Boolean, view) as Void {
+        startTraining(view);
+    }
+
+    (:high_res)
+    function handleResumeCheckpointResponse(shouldResume as Boolean, view) as Void {
         if (!shouldResume) {
             var appNo = Application.getApp() as EGYMApp;
             appNo.discardRecoverableCheckpoint();
@@ -335,7 +495,7 @@ class EGYMStartMenuDelegate extends WatchUi.Menu2InputDelegate {
         _resetTimer = null;
     }
 
-    private function startSavedFreeflow(view as EGYMView) as Void {
+    private function startSavedFreeflow(view) as Void {
         var savedFlow = EGYMSafeStore.getStorageStringArray(EGYMKeys.LAST_SAVED_FREEFLOW);
         if (savedFlow == null || savedFlow.size() == 0) {
             return;
@@ -345,7 +505,7 @@ class EGYMStartMenuDelegate extends WatchUi.Menu2InputDelegate {
         startPreparedTraining(view, savedFlow, false, progIndex, 0, false);
     }
 
-    private function applyLastSetup(view as EGYMView) as Void {
+    private function applyLastSetup(view) as Void {
         if (!EGYMSafeStore.getStorageBool(EGYMKeys.LAST_SETUP_EXISTS, false)) {
             return;
         }

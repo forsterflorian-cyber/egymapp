@@ -12,6 +12,7 @@ $ErrorActionPreference = "Stop"
 
 $junglePath = Join-Path $ProjectRoot "monkey.jungle"
 $outputDir = Join-Path $ProjectRoot "bin\\release-gate"
+$lowMemoryDevices = @("instinct2", "instinct2s", "instinct2x", "instinctcrossover")
 
 if (-not (Test-Path $junglePath)) {
     throw "monkey.jungle not found at: $junglePath"
@@ -89,6 +90,10 @@ foreach ($device in $Devices) {
         "-y", $SigningKey,
         "-w"
     )
+
+    if ($device -in $lowMemoryDevices) {
+        $args += @("-O", "2z", "-r")
+    }
 
     $result = Invoke-CompileStep -label ("build-" + $device) -cliArgs $args -monkeycExec $monkeycPath
     if ($result.ExitCode -ne 0) {

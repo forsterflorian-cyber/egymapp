@@ -43,6 +43,21 @@
                 "${workspaceFolder}\\scripts\\release-gate.ps1"
             ],
             "problemMatcher": []
+        },
+        {
+            "label": "EGYM: Run Instinct2 Sim",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}\\scripts\\run-instinct-sim.ps1",
+                "-Device",
+                "instinct2"
+            ],
+            "problemMatcher": []
         }
     ]
 }

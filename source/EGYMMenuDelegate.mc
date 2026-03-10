@@ -9,7 +9,7 @@ class EGYMMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     private var _viewRef as WeakReference;
 
-    function initialize(view as EGYMView) {
+    function initialize(view) {
         Menu2InputDelegate.initialize();
         _viewRef = view.weak();
     }
@@ -40,7 +40,7 @@ class EGYMMenuDelegate extends WatchUi.Menu2InputDelegate {
         if (idStr.equals(ID_DISCARD)) {
             WatchUi.switchToView(
                 new WatchUi.Confirmation(
-                    WatchUi.loadResource(Rez.Strings.UIConfirmDiscard) as String
+                    EGYMInstinctText.getConfirmDiscard()
                 ),
                 new EGYMDiscardConfirmDelegate(view),
                 WatchUi.SLIDE_UP
@@ -53,10 +53,10 @@ class EGYMMenuDelegate extends WatchUi.Menu2InputDelegate {
     // Helper
     // --------------------------------------------------------
 
-    private function getView() as EGYMView? {
+    private function getView() {
         if (!_viewRef.stillAlive()) {
             return null;
         }
-        return _viewRef.get() as EGYMView?;
+        return _viewRef.get();
     }
 }

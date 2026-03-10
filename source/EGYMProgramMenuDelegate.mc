@@ -34,7 +34,7 @@ class ProgramMenuDelegate extends WatchUi.Menu2InputDelegate {
                 var programs = EGYMConfig.getActivePrograms();
                 var parent = _parentItem;
 
-                if (newIndex >= 0 && newIndex < programs.size() && parent != null) {
+                if (newIndex >= 0 && newIndex < programs.size() && parent != null && !EGYMBuildProfile.isInstinctLowMemoryBuild()) {
                     var p = programs[newIndex] as Dictionary;
                     var newLabel = EGYMConfig.getProgramDisplayString(p);
                     parent.setSubLabel(newLabel);

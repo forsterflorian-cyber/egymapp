@@ -1,4 +1,5 @@
 import Toybox.WatchUi;
+import Toybox.WatchUi;
 import Toybox.Lang;
 
 class EGYMIndividualPickerDelegate extends WatchUi.Menu2InputDelegate {
@@ -9,37 +10,37 @@ class EGYMIndividualPickerDelegate extends WatchUi.Menu2InputDelegate {
     private const ID_MODE_INFO = "ind_mode_info";
     private const ID_UNDO_LAST = "ind_undo_last";
 
-    private var _viewRef as WeakReference;
+    private var _state as Dictionary;
 
-    function initialize(view as EGYMView) {
+    function initialize(state as Dictionary) {
         Menu2InputDelegate.initialize();
-        _viewRef = view.weak();
+        _state = state;
     }
 
     function onSelect(item as WatchUi.MenuItem) as Void {
-        var view = getView();
-        if (view == null) { return; }
-
         var id = item.getId();
         if (id == null) { return; }
 
         var idStr = (id instanceof String) ? (id as String) : id.toString();
+        var view = restoreView();
 
         if (idStr.equals(ID_FINISH)) {
             view.isWaitingForExercisePick = false;
-            WatchUi.popView(WatchUi.SLIDE_DOWN);
             view._individualPickMode = view.IND_PICK_ADD;
-            view.openProgramMenu();
+            view.scheduleProgramMenuLaunch();
+            switchBack(view);
             return;
         }
 
         if (idStr.equals(ID_MODE_INFO)) {
             view.isWaitingForExercisePick = true;
+            switchBack(view);
             return;
         }
 
         if (idStr.equals(ID_UNDO_LAST)) {
-            view.handleIndividualUndoFromPicker();
+            view.applyIndividualUndoFromPickerAtomic();
+            switchBack(view);
             return;
         }
 
@@ -51,28 +52,27 @@ class EGYMIndividualPickerDelegate extends WatchUi.Menu2InputDelegate {
                 var exercises = EGYMConfig.getAllExercises();
                 if (idx < exercises.size()) {
                     view.isWaitingForExercisePick = false;
-                    WatchUi.popView(WatchUi.SLIDE_DOWN);
                     view.onIndividualExercisePicked(exercises[idx]);
+                    switchBack(view);
                     return;
                 }
             }
         }
+
+        switchBack(view);
     }
 
     function onBack() as Void {
-        var view = getView();
-        if (view == null) {
-            WatchUi.popView(WatchUi.SLIDE_DOWN);
-            return;
-        }
-
-        view.handleIndividualPickerCancel();
+        var view = restoreView();
+        view.applyIndividualPickerCancelAtomic();
+        switchBack(view);
     }
 
-    private function getView() as EGYMView? {
-        if (!_viewRef.stillAlive()) {
-            return null;
-        }
-        return _viewRef.get() as EGYMView?;
+    private function restoreView() as EGYMViewLowMem {
+        return EGYMLowMemPickerLauncher.restoreWorkoutView(_state);
+    }
+
+    private function switchBack(view as EGYMViewLowMem) as Void {
+        WatchUi.switchToView(view, new EGYMDelegate(view), WatchUi.SLIDE_IMMEDIATE);
     }
 }

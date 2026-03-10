@@ -1,6 +1,7 @@
 import Toybox.WatchUi;
 import Toybox.Lang;
 
+(:high_res)
 class EGYMWeightPickerDelegate extends WatchUi.BehaviorDelegate {
     private var _pickerViewRef as WeakReference;
     private var _mainViewRef as WeakReference;
@@ -41,6 +42,9 @@ class EGYMWeightPickerDelegate extends WatchUi.BehaviorDelegate {
 
         if (main != null && picker != null) {
             main.onWeightPicked(picker.getWeight());
+            picker.release();
+        } else if (picker != null) {
+            picker.release();
         }
 
         WatchUi.popView(WatchUi.SLIDE_DOWN);
@@ -52,6 +56,12 @@ class EGYMWeightPickerDelegate extends WatchUi.BehaviorDelegate {
             var mainView = _mainViewRef.get() as EGYMView?;
             if (mainView != null) {
                 mainView.cancelWeightPicker();
+            }
+        }
+        if (_pickerViewRef.stillAlive()) {
+            var pickerView = _pickerViewRef.get() as EGYMWeightPickerView?;
+            if (pickerView != null) {
+                pickerView.release();
             }
         }
         WatchUi.popView(WatchUi.SLIDE_DOWN);

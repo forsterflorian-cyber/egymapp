@@ -1,1 +1,21 @@
 project.manifest = manifest.xml
+
+# The SDK has no custom device-group qualifier support, so the requested
+# instinct_low_mem group is represented explicitly by these four products.
+base.excludeAnnotations = is_instinct;low_mem
+
+instinct2.excludeAnnotations = high_res;color_ui
+instinct2s.excludeAnnotations = high_res;color_ui
+instinct2x.excludeAnnotations = high_res;color_ui
+instinctcrossover.excludeAnnotations = high_res;color_ui
+
+instinct2.resourcePath = resources-instinct
+instinct2s.resourcePath = resources-instinct
+instinct2x.resourcePath = resources-instinct
+instinctcrossover.resourcePath = resources-instinct
+
+instinct2.lang.deu = resources-instinct-deu
+instinct2s.lang.deu = resources-instinct-deu
+instinct2x.lang.deu = resources-instinct-deu
+instinctcrossover.lang.deu = resources-instinct-deu
+fr55.excludeAnnotations = is_instinct;high_res;color_ui

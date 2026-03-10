@@ -5,6 +5,7 @@ import Toybox.Lang;
 // EGYMProgChangeConfirmDelegate.mc
 // ==========================================
 
+(:high_res)
 class EGYMProgChangeConfirmDelegate extends WatchUi.ConfirmationDelegate {
     
     private var _viewRef as WeakReference;

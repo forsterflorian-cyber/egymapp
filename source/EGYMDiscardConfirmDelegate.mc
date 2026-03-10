@@ -17,8 +17,8 @@ class EGYMDiscardConfirmDelegate extends WatchUi.ConfirmationDelegate {
     // INITIALIZATION
     // ========================================================
 
-    //! @param view The EGYMView whose session may be discarded
-    function initialize(view as EGYMView) {
+    //! @param view The workout view whose session may be discarded
+    function initialize(view) {
         ConfirmationDelegate.initialize();
         _viewRef = view.weak();
     }
@@ -33,14 +33,16 @@ class EGYMDiscardConfirmDelegate extends WatchUi.ConfirmationDelegate {
             return true;
         }
         
-        var _view = _viewRef.get() as EGYMView?;
+        var _view = _viewRef.get();
         if (_view == null) {
             return true;
         }
 
         if (response == WatchUi.CONFIRM_YES) {
             try {
-                _view.discardSession();
+                if (_view has :discardSession) {
+                    _view.discardSession();
+                }
             } catch (e) {
                 // Session may already be null or stopped — non-fatal
             }

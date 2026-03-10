@@ -19,8 +19,8 @@ class EGYMDelegate extends WatchUi.InputDelegate {
     // INITIALIZATION
     // ========================================================
 
-    //! @param view The active EGYMView rendering the workout
-    function initialize(view as EGYMView) {
+    //! @param view The active workout view rendering the workout
+    function initialize(view) {
         InputDelegate.initialize();
         _viewRef = view.weak();
     }
@@ -29,13 +29,13 @@ class EGYMDelegate extends WatchUi.InputDelegate {
     // HELPER: Safe View Access
     // ========================================================
 
-    //! Returns the EGYMView if it's still alive, or null.
+    //! Returns the active workout view if it's still alive, or null.
     //! Consolidates the repeated weak-ref check pattern.
-    private function getView() as EGYMView? {
+    private function getView() {
         if (!_viewRef.stillAlive()) {
             return null;
         }
-        return _viewRef.get() as EGYMView?;
+        return _viewRef.get();
     }
 
     // ========================================================
@@ -174,7 +174,7 @@ class EGYMDelegate extends WatchUi.InputDelegate {
     // KEY HANDLERS
     // --------------------------------------------------------
 
-    private function handleKeyUp(view as EGYMView) as Boolean {
+    private function handleKeyUp(view) as Boolean {
         if (view.isShowingSuccess) {
             view.scrollRecords(-1);
             return true;
@@ -186,7 +186,7 @@ class EGYMDelegate extends WatchUi.InputDelegate {
         return true;
     }
 
-    private function handleKeyDown(view as EGYMView) as Boolean {
+    private function handleKeyDown(view) as Boolean {
         if (view.isShowingSuccess) {
             view.scrollRecords(1);
             return true;
@@ -198,7 +198,7 @@ class EGYMDelegate extends WatchUi.InputDelegate {
         return true;
     }
 
-    private function handleKeyEnter(view as EGYMView) as Boolean {
+    private function handleKeyEnter(view) as Boolean {
         if (view.isAskingForNewRound) {
             view.handleDecision(true);
             return true;
@@ -211,7 +211,7 @@ class EGYMDelegate extends WatchUi.InputDelegate {
         return true;
     }
 
-    private function handleKeyEsc(view as EGYMView) as Boolean {
+    private function handleKeyEsc(view) as Boolean {
         if (view.isShowingSuccess || view.isShowingDiscarded) {
             view.cleanupAndExit();
             return true;
@@ -232,7 +232,7 @@ class EGYMDelegate extends WatchUi.InputDelegate {
             return true;
         }
 
-        if (view.sm.isRecording()) {
+        if (view.hasActiveSessionRecording()) {
             view.openProgramMenu();
             return true;
         }

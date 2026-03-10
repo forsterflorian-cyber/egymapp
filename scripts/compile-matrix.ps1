@@ -11,6 +11,7 @@ $ErrorActionPreference = "Stop"
 
 $junglePath = Join-Path $ProjectRoot "monkey.jungle"
 $outputDir = Join-Path $ProjectRoot "bin\\matrix"
+$lowMemoryDevices = @("instinct2", "instinct2s", "instinct2x", "instinctcrossover")
 
 if (-not (Test-Path $junglePath)) {
     throw "monkey.jungle not found at: $junglePath"
@@ -46,6 +47,10 @@ foreach ($device in $Devices) {
         "-y", $SigningKey,
         "-w"
     )
+
+    if ($device -in $lowMemoryDevices) {
+        $args += @("-O", "2z", "-r")
+    }
 
     Write-Host ""
     Write-Host "==> [$device] compiling..."

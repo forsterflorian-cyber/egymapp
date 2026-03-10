@@ -11,6 +11,7 @@ import Toybox.UserProfile;
 // Extracted to keep EGYMView focused on state & logic.
 // ============================================================
 
+(:high_res)
 class EGYMViewDrawer {
 
     // Color palette
@@ -317,7 +318,7 @@ class EGYMViewDrawer {
 
         var hasSubscreen = _hasValidSubscreen;
         var compact = (w <= 176 && h <= 176);
-        if (hasSubscreen && compact && isMono) {
+        if (EGYMBuildProfile.isInstinctLowMemoryBuild() || (hasSubscreen && compact && isMono)) {
             _deviceType = :instinct2;
         }
 
@@ -325,11 +326,11 @@ class EGYMViewDrawer {
     }
 
     private function isInstinct2Layout(w as Number, h as Number) as Boolean {
-        return resolveDeviceType(w, h) == :instinct2;
+        return EGYMBuildProfile.isInstinctLowMemoryBuild() || resolveDeviceType(w, h) == :instinct2;
     }
 
     private function isInstinct2Active() as Boolean {
-        return _deviceType == :instinct2;
+        return EGYMBuildProfile.isInstinctLowMemoryBuild() || _deviceType == :instinct2;
     }
 
     private function getInstinctMainLeft() as Number {
@@ -343,6 +344,8 @@ class EGYMViewDrawer {
             if (candidate > 72) {
                 right = candidate;
             }
+        } else if (EGYMBuildProfile.isInstinctLowMemoryBuild()) {
+            right = w - 54;
         }
         if (right <= getInstinctMainLeft() + 40) {
             right = w - 6;
@@ -373,10 +376,46 @@ class EGYMViewDrawer {
         return getSafeContentWidth(w);
     }
 
+    private function getPhaseContentLeft(w as Number, h as Number) as Number {
+        if (isInstinct2Layout(w, h)) {
+            return getInstinctMainLeft();
+        }
+        return getContentInset(w);
+    }
+
+    private function getPhaseContentStartX(w as Number, h as Number, contentWidth as Number) as Number {
+        return getPhaseContentLeft(w, h) + ((getPhaseContentWidth(w, h) - contentWidth) / 2);
+    }
+
     private function getMonochromeAwareTextColor(defaultColor as Number) as Number {
         return isInstinct2Active() ? Graphics.COLOR_WHITE : defaultColor;
     }
 
+    private function getMetaTextFont() as Graphics.FontType {
+        return (EGYMBuildProfile.useSystemFontsOnly() && isInstinct2Active())
+            ? Graphics.FONT_TINY
+            : Graphics.FONT_XTINY;
+    }
+
+    private function getUnitTextFont() as Graphics.FontType {
+        return (EGYMBuildProfile.useSystemFontsOnly() && isInstinct2Active())
+            ? Graphics.FONT_TINY
+            : Graphics.FONT_MEDIUM;
+    }
+
+    private function getProminentTextFont() as Graphics.FontType {
+        return (EGYMBuildProfile.useSystemFontsOnly() && isInstinct2Active())
+            ? Graphics.FONT_MEDIUM
+            : Graphics.FONT_SMALL;
+    }
+
+    private function getBreakTimerFont() as Graphics.FontType {
+        return (EGYMBuildProfile.useSystemFontsOnly() && isInstinct2Active())
+            ? Graphics.FONT_MEDIUM
+            : Graphics.FONT_NUMBER_HOT;
+    }
+
+    (:color_ui)
     private function drawVerticalPattern(
         dc as Graphics.Dc,
         x as Number,
@@ -396,6 +435,17 @@ class EGYMViewDrawer {
             dc.drawLine(px, y, px, endY);
             px += stride;
         }
+    }
+
+    (:is_instinct)
+    private function drawVerticalPattern(
+        dc as Graphics.Dc,
+        x as Number,
+        y as Number,
+        width as Number,
+        height as Number,
+        step as Number
+    ) as Void {
     }
 
     // ========================================================
@@ -496,10 +546,13 @@ class EGYMViewDrawer {
         view as EGYMView,
         isDiscard as Boolean
     ) as Void {
-        var boxX = 10;
-        var boxW = w - 20;
+        var boxX = getInstinctMainLeft();
+        var boxW = getInstinctMainWidth(w);
         var boxY = (h * 0.24).toNumber();
         var boxH = 30;
+        var centerX = getInstinctMainCenterX(w);
+        var labelFont = getMetaTextFont();
+        var titleFont = getProminentTextFont();
         var title = isDiscard
             ? (view.isShowingSaveFailed ? view._sSaveFailed : view._sDiscarded)
             : view._sCircuitComplete;
@@ -509,14 +562,14 @@ class EGYMViewDrawer {
             dc.drawRectangle(boxX, boxY, boxW, boxH);
             drawVerticalPattern(dc, boxX + 2, boxY + 2, boxW - 4, boxH - 4, 4);
             dc.drawText(
-                w / 2, boxY + boxH / 2, Graphics.FONT_SMALL,
-                fitTextToWidth(dc, title, Graphics.FONT_SMALL, boxW - 6),
+                centerX, boxY + boxH / 2, titleFont,
+                fitTextToWidth(dc, title, titleFont, boxW - 6),
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
             );
             dc.setColor(Graphics.COLOR_WHITE, -1);
             dc.drawText(
-                w / 2, h * 0.52, Graphics.FONT_XTINY,
-                fitTextToWidth(dc, view._sBackSave, Graphics.FONT_XTINY, w - 20),
+                centerX, h * 0.52, labelFont,
+                fitTextToWidth(dc, view._sBackSave, labelFont, boxW),
                 Graphics.TEXT_JUSTIFY_CENTER
             );
             return;
@@ -527,26 +580,26 @@ class EGYMViewDrawer {
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         drawVerticalPattern(dc, boxX + 1, boxY + 1, boxW - 2, boxH - 2, 3);
         dc.drawText(
-            w / 2, boxY + boxH / 2, Graphics.FONT_SMALL,
-            fitTextToWidth(dc, title, Graphics.FONT_SMALL, boxW - 6),
+            centerX, boxY + boxH / 2, titleFont,
+            fitTextToWidth(dc, title, titleFont, boxW - 6),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
         );
 
         dc.setColor(Graphics.COLOR_WHITE, -1);
         dc.drawText(
-            w / 2, h * 0.43, Graphics.FONT_SMALL,
+            centerX, h * 0.43, titleFont,
             view.sessionTotalKg.toString() + view._sUnitKgSpaced,
             Graphics.TEXT_JUSTIFY_CENTER
         );
         dc.drawText(
-            w / 2, h * 0.53, Graphics.FONT_SMALL,
+            centerX, h * 0.53, titleFont,
             view.finalCalories.toString() + " " + view._sUnitKcal,
             Graphics.TEXT_JUSTIFY_CENTER
         );
 
-        var hint = fitTextToWidth(dc, view._sBackSave, Graphics.FONT_XTINY, w - 20);
+        var hint = fitTextToWidth(dc, view._sBackSave, labelFont, boxW);
         dc.drawText(
-            w / 2, h * 0.9, Graphics.FONT_XTINY,
+            centerX, h * 0.9, labelFont,
             hint, Graphics.TEXT_JUSTIFY_CENTER
         );
     }
@@ -750,6 +803,7 @@ class EGYMViewDrawer {
         var summaryText = view._cachedProgLabel + " | " + view._sRound + " " + view.currentRound;
         var summaryWidth = getSafeContentWidth(w);
         var summaryX = w / 2;
+        var summaryFont = getMetaTextFont();
         if (isInstinct2Layout(w, h)) {
             summaryWidth = getInstinctMainWidth(w);
             summaryX = getInstinctMainCenterX(w);
@@ -757,13 +811,13 @@ class EGYMViewDrawer {
         summaryText = fitTextToWidth(
             dc,
             summaryText,
-            Graphics.FONT_XTINY,
+            summaryFont,
             summaryWidth
         );
 
         dc.setColor(Graphics.COLOR_WHITE, -1);
         dc.drawText(
-            summaryX, getProgramSummaryY(h), Graphics.FONT_XTINY,
+            summaryX, getProgramSummaryY(h), summaryFont,
             summaryText,
             Graphics.TEXT_JUSTIFY_CENTER
         );
@@ -867,15 +921,17 @@ class EGYMViewDrawer {
             _cachedTimeStr = m.format("%02d") + ":" + s.format("%02d");
         }
 
+        var headerFont = getMetaTextFont();
         var headerText = view._sHR + ":" + hr + " " + _cachedTimeStr;
         var maxW = getInstinctMainWidth(w);
-        headerText = fitTextToWidth(dc, headerText, Graphics.FONT_XTINY, maxW);
+        headerText = fitTextToWidth(dc, headerText, headerFont, maxW);
 
         var x = getInstinctMainLeft();
         var y = h <= 176 ? 8 : (h * 0.1).toNumber();
         dc.setColor(Graphics.COLOR_WHITE, -1);
-        dc.drawText(x, y, Graphics.FONT_XTINY, headerText, Graphics.TEXT_JUSTIFY_LEFT);
-        dc.drawLine(x, y + 14, x + maxW, y + 14);
+        dc.drawText(x, y, headerFont, headerText, Graphics.TEXT_JUSTIFY_LEFT);
+        var dividerY = y + dc.getFontHeight(headerFont) + 2;
+        dc.drawLine(x, dividerY, x + maxW, dividerY);
 
         drawInstinctSubWindowStatus(dc, w, h, view);
     }
@@ -929,17 +985,20 @@ class EGYMViewDrawer {
         dc.drawRectangle(sx, sy, sw, sh);
         drawVerticalPattern(dc, sx + 1, sy + 1, sw - 2, 10, 3);
 
+        var labelFont = getMetaTextFont();
+        var valueFont = EGYMBuildProfile.useSystemFontsOnly()
+            ? Graphics.FONT_MEDIUM
+            : Graphics.FONT_SMALL;
         var maxLabelW = sw - 6;
         var maxValueW = sw - 6;
         dc.drawText(
-            sx + sw / 2, sy + 4, Graphics.FONT_XTINY,
-            fitTextToWidth(dc, label, Graphics.FONT_XTINY, maxLabelW),
+            sx + sw / 2, sy + 4, labelFont,
+            fitTextToWidth(dc, label, labelFont, maxLabelW),
             Graphics.TEXT_JUSTIFY_CENTER
         );
 
-        var valueFont = Graphics.FONT_SMALL;
         if (dc.getTextWidthInPixels(value, valueFont) > maxValueW) {
-            valueFont = Graphics.FONT_XTINY;
+            valueFont = labelFont;
         }
         dc.drawText(
             sx + sw / 2, sy + (sh * 0.62).toNumber(), valueFont,
@@ -1032,10 +1091,11 @@ class EGYMViewDrawer {
         }
 
         var status = completed.toString() + "/" + total.toString();
+        var statusFont = getMetaTextFont();
         dc.setColor(Graphics.COLOR_WHITE, -1);
         dc.drawText(
-            barX + barW, barY - 13, Graphics.FONT_XTINY,
-            fitTextToWidth(dc, status, Graphics.FONT_XTINY, barW),
+            barX + barW, barY - 13, statusFont,
+            fitTextToWidth(dc, status, statusFont, barW),
             Graphics.TEXT_JUSTIFY_RIGHT
         );
     }
@@ -1054,18 +1114,19 @@ class EGYMViewDrawer {
         var labelY = getMetricLabelY(dh);
         var centerX = getPhaseContentCenterX(w, dh);
         var contentWidth = getPhaseContentWidth(w, dh);
+        var labelFont = getMetaTextFont();
 
         dc.setColor(getMonochromeAwareTextColor(CLR_SECONDARY), -1);
         dc.drawText(
-            centerX, infoY, Graphics.FONT_XTINY,
+            centerX, infoY, labelFont,
             view._cachedExInfo, Graphics.TEXT_JUSTIFY_CENTER
         );
 
-        var exLabel = fitTextToWidth(dc, view._cachedExLabel, Graphics.FONT_XTINY, contentWidth);
+        var exLabel = fitTextToWidth(dc, view._cachedExLabel, labelFont, contentWidth);
 
         dc.setColor(getMonochromeAwareTextColor(CLR_POSITIVE), -1);
         dc.drawText(
-            centerX, labelY, Graphics.FONT_XTINY,
+            centerX, labelY, labelFont,
             exLabel, Graphics.TEXT_JUSTIFY_CENTER
         );
 
@@ -1086,10 +1147,12 @@ class EGYMViewDrawer {
     ) as Void {
         dc.setColor(Graphics.COLOR_WHITE, -1);
         var valueFont = getWeightValueFont(dh);
+        var unitFont = getUnitTextFont();
         var weightWidth = dc.getTextWidthInPixels(weight.toString(), valueFont);
-        var kgWidth = dc.getTextWidthInPixels(view._sUnitKg, Graphics.FONT_MEDIUM);
+        var kgWidth = dc.getTextWidthInPixels(view._sUnitKg, unitFont);
         var gap = getMetricUnitGap(dh);
-        var startX = (w - (weightWidth + gap + kgWidth)) / 2;
+        var totalWidth = weightWidth + gap + kgWidth;
+        var startX = getPhaseContentStartX(w, dh, totalWidth);
         var centerY = getMetricValueY(dh);
 
         dc.drawText(
@@ -1100,7 +1163,7 @@ class EGYMViewDrawer {
 
         dc.setColor(getMonochromeAwareTextColor(CLR_SECONDARY), -1);
         dc.drawText(
-            startX + weightWidth + gap, centerY, Graphics.FONT_MEDIUM,
+            startX + weightWidth + gap, centerY, unitFont,
             view._sUnitKg,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER
         );
@@ -1115,29 +1178,32 @@ class EGYMViewDrawer {
         var labelY = getWorkoutBottomLabelY(dh);
         var nameY = getWorkoutBottomNameY(dh);
         var nameFont = getWorkoutNextNameFont(dh);
+        var centerX = getPhaseContentCenterX(w, dh);
+        var contentWidth = getPhaseContentWidth(w, dh);
+        var labelFont = getMetaTextFont();
 
         if (view.index < view.zirkel.size() - 1) {
             var nextName = fitTextToWidth(
                 dc,
                 view._cachedNextExLabel,
                 nameFont,
-                getSafeContentWidth(w)
+                contentWidth
             );
 
             dc.setColor(getMonochromeAwareTextColor(CLR_HIGHLIGHT), -1);
             dc.drawText(
-                w / 2, labelY, Graphics.FONT_XTINY,
+                centerX, labelY, labelFont,
                 view._sNext, Graphics.TEXT_JUSTIFY_CENTER
             );
             dc.setColor(Graphics.COLOR_WHITE, -1);
             dc.drawText(
-                w / 2, nameY, nameFont,
+                centerX, nameY, nameFont,
                 nextName, Graphics.TEXT_JUSTIFY_CENTER
             );
         } else if (!view.isIndividualMode) {
             dc.setColor(getMonochromeAwareTextColor(CLR_SECONDARY), -1);
             dc.drawText(
-                w / 2, labelY, Graphics.FONT_XTINY,
+                centerX, labelY, labelFont,
                 view._sLastExercise, Graphics.TEXT_JUSTIFY_CENTER
             );
         }
@@ -1158,15 +1224,18 @@ class EGYMViewDrawer {
         var labelY = getMetricLabelY(dh);
         var centerX = getPhaseContentCenterX(w, dh);
         var contentWidth = getPhaseContentWidth(w, dh);
+        var labelFont = getMetaTextFont();
 
         dc.setColor(getMonochromeAwareTextColor(CLR_ACCENT), -1);
         dc.drawText(
-            centerX, infoY, Graphics.FONT_XTINY,
+            centerX, infoY, labelFont,
             isExp ? view._sRateWatt : view._sRateQuality,
             Graphics.TEXT_JUSTIFY_CENTER
         );
 
-        var exFont = isCompactLayout(dh) ? Graphics.FONT_XTINY : Graphics.FONT_SMALL;
+        var exFont = (EGYMBuildProfile.useSystemFontsOnly() && isInstinct2Active())
+            ? Graphics.FONT_TINY
+            : (isCompactLayout(dh) ? Graphics.FONT_XTINY : Graphics.FONT_SMALL);
         var exLabel = fitTextToWidth(dc, view._cachedExLabel, exFont, contentWidth);
 
         dc.drawText(
@@ -1178,11 +1247,12 @@ class EGYMViewDrawer {
         var numStr = view.qualityValue.toString();
         var centerY = getAdjustMetricValueY(dh);
         var valueFont = getAdjustValueFont(dh, isExp);
+        var unitFont = getUnitTextFont();
 
         var numW = dc.getTextWidthInPixels(numStr, valueFont);
-        var suffW = dc.getTextWidthInPixels(suffix, Graphics.FONT_MEDIUM);
+        var suffW = dc.getTextWidthInPixels(suffix, unitFont);
         var gap = getMetricUnitGap(dh);
-        var startX = (w - (numW + gap + suffW)) / 2;
+        var startX = getPhaseContentStartX(w, dh, numW + gap + suffW);
 
         dc.setColor(getMonochromeAwareTextColor(CLR_ACCENT), -1);
         dc.drawText(
@@ -1193,7 +1263,7 @@ class EGYMViewDrawer {
 
         dc.setColor(getMonochromeAwareTextColor(CLR_SECONDARY), -1);
         dc.drawText(
-            startX + numW + gap, centerY, Graphics.FONT_MEDIUM,
+            startX + numW + gap, centerY, unitFont,
             suffix,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER
         );
@@ -1224,10 +1294,12 @@ class EGYMViewDrawer {
 
         var elapsed = (System.getTimer() - view.breakStartTime) / 1000;
         var centerX = getPhaseContentCenterX(w, dh);
+        var contentWidth = getPhaseContentWidth(w, dh);
+        var labelFont = getMetaTextFont();
 
         dc.setColor(getMonochromeAwareTextColor(CLR_HIGHLIGHT), -1);
         dc.drawText(
-            centerX, titleY, Graphics.FONT_XTINY,
+            centerX, titleY, labelFont,
             view._sBreak, Graphics.TEXT_JUSTIFY_CENTER
         );
 
@@ -1236,13 +1308,13 @@ class EGYMViewDrawer {
             : (isCompactLayout(dh) ? view._sBreakContinueCompact : view._sBreakContinueHint);
         dc.setColor(getMonochromeAwareTextColor(CLR_HIGHLIGHT), -1);
         dc.drawText(
-            w / 2, _yTimer, Graphics.FONT_NUMBER_HOT,
+            centerX, _yTimer, getBreakTimerFont(),
             elapsed.toString(),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
         );
 
         drawActionHint(
-            dc, w, _yBreakHint, breakHint
+            dc, w, dh, _yBreakHint, breakHint
         );
 
         if (view.index < view.zirkel.size() - 1) {
@@ -1251,23 +1323,23 @@ class EGYMViewDrawer {
                 dc,
                 view._cachedNextExLabel,
                 nextFont,
-                getSafeContentWidth(w)
+                contentWidth
             );
             dc.setColor(getMonochromeAwareTextColor(CLR_HIGHLIGHT), -1);
             dc.drawText(
-                w / 2, _yNextLabel, Graphics.FONT_XTINY,
+                centerX, _yNextLabel, labelFont,
                 view._sNext, Graphics.TEXT_JUSTIFY_CENTER
             );
             dc.setColor(Graphics.COLOR_WHITE, -1);
             dc.drawText(
-                w / 2, _yNextName,
+                centerX, _yNextName,
                 nextFont,
                 nextName, Graphics.TEXT_JUSTIFY_CENTER
             );
         } else if (!view.isIndividualMode) {
             dc.setColor(getMonochromeAwareTextColor(CLR_SECONDARY), -1);
             dc.drawText(
-                w / 2, _yNextLabel, Graphics.FONT_XTINY,
+                centerX, _yNextLabel, labelFont,
                 view._sLastExercise, Graphics.TEXT_JUSTIFY_CENTER
             );
         }
@@ -1276,6 +1348,7 @@ class EGYMViewDrawer {
     private function drawActionHint(
         dc as Graphics.Dc,
         w as Number,
+        h as Number,
         y as Number,
         text as String
     ) as Void {
@@ -1285,7 +1358,7 @@ class EGYMViewDrawer {
 
         dc.setColor(getMonochromeAwareTextColor(CLR_MID), -1);
         dc.drawText(
-            w / 2, y, Graphics.FONT_XTINY,
+            getPhaseContentCenterX(w, h), y, getMetaTextFont(),
             text, Graphics.TEXT_JUSTIFY_CENTER
         );
     }
@@ -1300,20 +1373,22 @@ class EGYMViewDrawer {
         var splitIdx = hintText.find(",");
         var line1 = hintText;
         var line2 = "";
-        var maxWidth = getSafeContentWidth(w);
+        var maxWidth = getPhaseContentWidth(w, h);
+        var centerX = getPhaseContentCenterX(w, h);
+        var hintFont = getMetaTextFont();
 
         if (splitIdx != null) {
             line1 = trimAsciiText(hintText.substring(0, splitIdx));
             line2 = trimAsciiText(hintText.substring(splitIdx + 1, hintText.length()));
         }
-        line1 = fitTextToWidth(dc, line1, Graphics.FONT_XTINY, maxWidth);
+        line1 = fitTextToWidth(dc, line1, hintFont, maxWidth);
 
         if (line2.length() > 0 && sideHint.length() > 0) {
             line2 = mergeTrailingHint(dc, line2, sideHint, maxWidth);
         } else if (line2.length() == 0 && sideHint.length() > 0) {
-            line2 = fitTextToWidth(dc, sideHint, Graphics.FONT_XTINY, maxWidth);
+            line2 = fitTextToWidth(dc, sideHint, hintFont, maxWidth);
         } else if (line2.length() > 0) {
-            line2 = fitTextToWidth(dc, line2, Graphics.FONT_XTINY, maxWidth);
+            line2 = fitTextToWidth(dc, line2, hintFont, maxWidth);
         }
 
         var baseY = getWorkoutActionHintY(h);
@@ -1328,13 +1403,13 @@ class EGYMViewDrawer {
 
         dc.setColor(getMonochromeAwareTextColor(CLR_DIM), -1);
         dc.drawText(
-            w / 2, line1Y, Graphics.FONT_XTINY,
+            centerX, line1Y, hintFont,
             line1, Graphics.TEXT_JUSTIFY_CENTER
         );
 
         if (line2.length() > 0) {
             dc.drawText(
-                w / 2, line2Y, Graphics.FONT_XTINY,
+                centerX, line2Y, hintFont,
                 line2, Graphics.TEXT_JUSTIFY_CENTER
             );
             return;
@@ -1347,13 +1422,14 @@ class EGYMViewDrawer {
         trailingHint as String,
         maxWidth as Number
     ) as String {
+        var hintFont = getMetaTextFont();
         if (trailingHint.length() == 0) {
-            return fitTextToWidth(dc, baseText, Graphics.FONT_XTINY, maxWidth);
+            return fitTextToWidth(dc, baseText, hintFont, maxWidth);
         }
 
         var joiner = "  ";
-        var hintWidth = dc.getTextWidthInPixels(trailingHint, Graphics.FONT_XTINY);
-        var joinerWidth = dc.getTextWidthInPixels(joiner, Graphics.FONT_XTINY);
+        var hintWidth = dc.getTextWidthInPixels(trailingHint, hintFont);
+        var joinerWidth = dc.getTextWidthInPixels(joiner, hintFont);
         var reserved = hintWidth + joinerWidth;
 
         if (reserved >= maxWidth) {
@@ -1361,7 +1437,7 @@ class EGYMViewDrawer {
         }
 
         var baseWidth = maxWidth - reserved;
-        var fittedBase = fitTextToWidth(dc, baseText, Graphics.FONT_XTINY, baseWidth);
+        var fittedBase = fitTextToWidth(dc, baseText, hintFont, baseWidth);
         if (fittedBase.length() == 0) {
             return trailingHint;
         }
@@ -1444,6 +1520,9 @@ class EGYMViewDrawer {
     }
 
     private function getWeightValueFont(h as Number) as Graphics.FontType {
+        if (EGYMBuildProfile.useSystemFontsOnly() && isInstinct2Active()) {
+            return Graphics.FONT_MEDIUM;
+        }
         if (isInstinct2Active()) {
             return Graphics.FONT_LARGE;
         }
@@ -1451,6 +1530,9 @@ class EGYMViewDrawer {
     }
 
     private function getWorkoutNextNameFont(h as Number) as Graphics.FontType {
+        if (EGYMBuildProfile.useSystemFontsOnly() && isInstinct2Active()) {
+            return Graphics.FONT_TINY;
+        }
         if (h >= 360) {
             return Graphics.FONT_XTINY;
         }
@@ -1458,6 +1540,9 @@ class EGYMViewDrawer {
     }
 
     private function getAdjustValueFont(h as Number, isExp as Boolean) as Graphics.FontType {
+        if (EGYMBuildProfile.useSystemFontsOnly() && isInstinct2Active()) {
+            return Graphics.FONT_MEDIUM;
+        }
         if (isInstinct2Active()) {
             return isExp ? Graphics.FONT_LARGE : Graphics.FONT_NUMBER_MILD;
         }
@@ -1858,15 +1943,19 @@ class EGYMViewDrawer {
         h as Number,
         view as EGYMView
     ) as Void {
+        var centerX = getInstinctMainCenterX(w);
+        var contentWidth = getInstinctMainWidth(w);
+        var titleFont = getProminentTextFont();
+        var labelFont = getMetaTextFont();
         dc.setColor(Graphics.COLOR_WHITE, -1);
         dc.drawText(
-            w / 2, h * 0.2, Graphics.FONT_SMALL,
-            fitTextToWidth(dc, view._sRoundComplete, Graphics.FONT_SMALL, w - 20),
+            centerX, h * 0.2, titleFont,
+            fitTextToWidth(dc, view._sRoundComplete, titleFont, contentWidth),
             Graphics.TEXT_JUSTIFY_CENTER
         );
         dc.drawText(
-            w / 2, h * 0.36, Graphics.FONT_XTINY,
-            fitTextToWidth(dc, view._sAnotherRound, Graphics.FONT_XTINY, w - 20),
+            centerX, h * 0.36, labelFont,
+            fitTextToWidth(dc, view._sAnotherRound, labelFont, contentWidth),
             Graphics.TEXT_JUSTIFY_CENTER
         );
 
@@ -1888,7 +1977,7 @@ class EGYMViewDrawer {
         drawVerticalPattern(dc, nr[0] + 1, nr[1] + 1, nr[2] - 2, nr[3] - 2, 5);
         dc.drawText(
             nr[0] + nr[2] / 2, nr[1] + nr[3] / 2,
-            Graphics.FONT_XTINY, view._sNo,
+            labelFont, view._sNo,
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
         );
 
@@ -1899,7 +1988,7 @@ class EGYMViewDrawer {
         drawVerticalPattern(dc, yr[0] + 1, yr[1] + 1, yr[2] - 2, yr[3] - 2, 2);
         dc.drawText(
             yr[0] + yr[2] / 2, yr[1] + yr[3] / 2,
-            Graphics.FONT_XTINY, view._sYes,
+            labelFont, view._sYes,
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER
         );
     }

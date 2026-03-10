@@ -19,6 +19,7 @@ class EGYMKeys {
     public static const LAST_SESSION_VOLUME    = "lastSessionVolume";
     public static const LAST_SAVED_FREEFLOW   = "lastSavedFreeflow";
     public static const SESSION_CHECKPOINT    = "session_checkpoint";
+    public static const SESSION_CHECKPOINT_PROFILE = "session_checkpoint_profile";
 
     public static const STAT_SESSIONS     = "stat_sessions";
     public static const STAT_TOTAL_VOLUME = "stat_totalVolume";

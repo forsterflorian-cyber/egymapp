@@ -53,7 +53,9 @@ class EGYMCircleMenuDelegate extends WatchUi.Menu2InputDelegate {
 
         EGYMSafeStore.setPropertyValue(EGYMKeys.ACTIVE_CIRCLE, circleIndex);
 
-        _parentItem.setSubLabel(EGYMConfig.getCircleName());
+        if (!EGYMBuildProfile.isInstinctLowMemoryBuild()) {
+            _parentItem.setSubLabel(EGYMConfig.getCircleName());
+        }
 
         WatchUi.popView(WatchUi.SLIDE_RIGHT);
     }

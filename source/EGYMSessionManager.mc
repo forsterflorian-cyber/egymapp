@@ -91,7 +91,7 @@ class EGYMSessionManager {
     //! Creates a session using a compatibility-first fallback chain.
     //! Some Connect web render paths are stricter about sport/sub-sport combos.
     private function createCompatibleSession() as ActivityRecording.Session? {
-        var name = fitSafeLength(WatchUi.loadResource(Rez.Strings.AppName) as String, 15);
+        var name = fitSafeLength(getSessionAppName(), 15);
 
         // 1) Preferred for resistance training rendering on web.
         try {
@@ -339,11 +339,11 @@ class EGYMSessionManager {
             return;
         }
         // Hilfsvariablen für die Labels (macht den Code übersichtlicher)
-        var repsLabel = WatchUi.loadResource(Rez.Strings.FitRepsLabel) as String;
-        var weightLabel = WatchUi.loadResource(Rez.Strings.FitWeightLabel) as String;
-        var perfLabel = WatchUi.loadResource(Rez.Strings.FitPerfLabel) as String;
-        var workloadLabel = WatchUi.loadResource(Rez.Strings.FitWorkloadLabel) as String;
-        var exerciseLabel = WatchUi.loadResource(Rez.Strings.FitExerciseLabel) as String;
+        var repsLabel = getFitRepsLabel();
+        var weightLabel = getFitWeightLabel();
+        var perfLabel = getFitPerfLabel();
+        var workloadLabel = getFitWorkloadLabel();
+        var exerciseLabel = getFitExerciseLabel();
 
         try {
            _repsField = session.createField(repsLabel, REPS_FIELD_ID, FitContributor.DATA_TYPE_UINT16, { :mesgType => FitContributor.MESG_TYPE_LAP, :units => "reps" });
@@ -377,31 +377,31 @@ class EGYMSessionManager {
         }
 
         try {
-   _totalWeightField = session.createField(WatchUi.loadResource(Rez.Strings.FitTotalSessionLabel) as String, TOTAL_SESSION_FIELD_ID, FitContributor.DATA_TYPE_UINT32, { :mesgType => FitContributor.MESG_TYPE_SESSION, :units => "kg" });     } catch (e) {
+   _totalWeightField = session.createField(getFitTotalSessionLabel(), TOTAL_SESSION_FIELD_ID, FitContributor.DATA_TYPE_UINT32, { :mesgType => FitContributor.MESG_TYPE_SESSION, :units => "kg" });     } catch (e) {
             logSessionIssue("createField failed: session total");
             _totalWeightField = null;
         }
 
         try {
-    _avgPerformanceField = session.createField(WatchUi.loadResource(Rez.Strings.FitAverageLabel) as String, AVG_PERF_FIELD_ID, FitContributor.DATA_TYPE_STRING, { :mesgType => FitContributor.MESG_TYPE_SESSION, :count => AVG_PERF_FIELD_COUNT });      } catch (e) {
+    _avgPerformanceField = session.createField(getFitAverageLabel(), AVG_PERF_FIELD_ID, FitContributor.DATA_TYPE_STRING, { :mesgType => FitContributor.MESG_TYPE_SESSION, :count => AVG_PERF_FIELD_COUNT });      } catch (e) {
             logSessionIssue("createField failed: average performance");
             _avgPerformanceField = null;
         }
 
         try {
-        _programNameField = session.createField(WatchUi.loadResource(Rez.Strings.FitProgramLabel) as String, PROGRAM_NAME_FIELD_ID, FitContributor.DATA_TYPE_STRING, { :mesgType => FitContributor.MESG_TYPE_SESSION, :count => 24 });    } catch (e) {
+        _programNameField = session.createField(getFitProgramLabel(), PROGRAM_NAME_FIELD_ID, FitContributor.DATA_TYPE_STRING, { :mesgType => FitContributor.MESG_TYPE_SESSION, :count => 24 });    } catch (e) {
             logSessionIssue("createField failed: program name");
             _programNameField = null;
         }
 
         try {
-          _wattRecordsField = session.createField(WatchUi.loadResource(Rez.Strings.FitWattRecordsLabel) as String, WATT_RECORDS_FIELD_ID, FitContributor.DATA_TYPE_STRING, { :mesgType => FitContributor.MESG_TYPE_SESSION, :count => WATT_RECORDS_FIELD_COUNT }); } catch (e) {
+          _wattRecordsField = session.createField(getFitWattRecordsLabel(), WATT_RECORDS_FIELD_ID, FitContributor.DATA_TYPE_STRING, { :mesgType => FitContributor.MESG_TYPE_SESSION, :count => WATT_RECORDS_FIELD_COUNT }); } catch (e) {
             logSessionIssue("createField failed: record summary");
             _wattRecordsField = null;
         }
 
         try {
-         _methodNameField = session.createField(WatchUi.loadResource(Rez.Strings.FitMethodLabel) as String, METHOD_NAME_FIELD_ID, FitContributor.DATA_TYPE_STRING, { :mesgType => FitContributor.MESG_TYPE_SESSION, :count => METHOD_NAME_FIELD_COUNT });     } catch (e) {
+         _methodNameField = session.createField(getFitMethodLabel(), METHOD_NAME_FIELD_ID, FitContributor.DATA_TYPE_STRING, { :mesgType => FitContributor.MESG_TYPE_SESSION, :count => METHOD_NAME_FIELD_COUNT });     } catch (e) {
             logSessionIssue("createField failed: method name");
             _methodNameField = null;
         }
@@ -475,6 +475,116 @@ class EGYMSessionManager {
         } catch (ignored2) {
             return "";
         }
+    }
+
+    (:low_mem)
+    private function getSessionAppName() as String {
+        return EGYMInstinctText.getFitAppName();
+    }
+
+    (:high_res)
+    private function getSessionAppName() as String {
+        return WatchUi.loadResource(Rez.Strings.AppName) as String;
+    }
+
+    (:low_mem)
+    private function getFitRepsLabel() as String {
+        return EGYMInstinctText.getFitRepsLabel();
+    }
+
+    (:high_res)
+    private function getFitRepsLabel() as String {
+        return WatchUi.loadResource(Rez.Strings.FitRepsLabel) as String;
+    }
+
+    (:low_mem)
+    private function getFitWeightLabel() as String {
+        return EGYMInstinctText.getFitWeightLabel();
+    }
+
+    (:high_res)
+    private function getFitWeightLabel() as String {
+        return WatchUi.loadResource(Rez.Strings.FitWeightLabel) as String;
+    }
+
+    (:low_mem)
+    private function getFitPerfLabel() as String {
+        return EGYMInstinctText.getFitPerfLabel();
+    }
+
+    (:high_res)
+    private function getFitPerfLabel() as String {
+        return WatchUi.loadResource(Rez.Strings.FitPerfLabel) as String;
+    }
+
+    (:low_mem)
+    private function getFitWorkloadLabel() as String {
+        return EGYMInstinctText.getFitWorkloadLabel();
+    }
+
+    (:high_res)
+    private function getFitWorkloadLabel() as String {
+        return WatchUi.loadResource(Rez.Strings.FitWorkloadLabel) as String;
+    }
+
+    (:low_mem)
+    private function getFitExerciseLabel() as String {
+        return EGYMInstinctText.getFitExerciseLabel();
+    }
+
+    (:high_res)
+    private function getFitExerciseLabel() as String {
+        return WatchUi.loadResource(Rez.Strings.FitExerciseLabel) as String;
+    }
+
+    (:low_mem)
+    private function getFitTotalSessionLabel() as String {
+        return EGYMInstinctText.getFitTotalSessionLabel();
+    }
+
+    (:high_res)
+    private function getFitTotalSessionLabel() as String {
+        return WatchUi.loadResource(Rez.Strings.FitTotalSessionLabel) as String;
+    }
+
+    (:low_mem)
+    private function getFitAverageLabel() as String {
+        return EGYMInstinctText.getFitAverageLabel();
+    }
+
+    (:high_res)
+    private function getFitAverageLabel() as String {
+        return WatchUi.loadResource(Rez.Strings.FitAverageLabel) as String;
+    }
+
+    (:low_mem)
+    private function getFitProgramLabel() as String {
+        return EGYMInstinctText.getFitProgramLabel();
+    }
+
+    (:high_res)
+    private function getFitProgramLabel() as String {
+        return WatchUi.loadResource(Rez.Strings.FitProgramLabel) as String;
+    }
+
+    (:low_mem)
+    private function getFitWattRecordsLabel() as String {
+        return EGYMInstinctText.getFitWattRecordsLabel();
+    }
+
+    (:high_res)
+    private function getFitWattRecordsLabel() as String {
+        return WatchUi.loadResource(Rez.Strings.FitWattRecordsLabel) as String;
+    }
+
+    (:low_mem)
+    private function getFitMethodLabel() as String {
+        return EGYMInstinctText.getFitMethodLabel();
+    }
+
+    (:high_res)
+    private function getFitMethodLabel() as String {
+        return WatchUi.loadResource(Rez.Strings.FitMethodLabel) as String;
     }
 
     //! Truncates a string safely. Since strings can contain multi-byte characters

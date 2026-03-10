@@ -1,6 +1,7 @@
 import Toybox.WatchUi;
 import Toybox.Lang;
 
+(:high_res)
 class EGYMResumeCheckpointConfirmDelegate extends WatchUi.ConfirmationDelegate {
 
     private var _menuRef as WeakReference;
@@ -24,16 +25,6 @@ class EGYMResumeCheckpointConfirmDelegate extends WatchUi.ConfirmationDelegate {
         }
 
         menu.handleResumeCheckpointResponse(response == WatchUi.CONFIRM_YES, view);
-        return true;
-    }
-}
-
-class EGYMNoopConfirmDelegate extends WatchUi.ConfirmationDelegate {
-    function initialize() {
-        ConfirmationDelegate.initialize();
-    }
-
-    function onResponse(response as WatchUi.Confirm) as Boolean {
         return true;
     }
 }

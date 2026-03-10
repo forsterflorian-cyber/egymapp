@@ -4,6 +4,7 @@ import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.StringUtil;
 
+(:high_res)
 class EGYMDiagnosticsView extends WatchUi.View {
     private var _stringsLoaded as Boolean = false;
 
@@ -23,6 +24,21 @@ class EGYMDiagnosticsView extends WatchUi.View {
 
     function initialize() {
         View.initialize();
+    }
+
+    function release() as Void {
+        _schemaLine = "";
+        _programLine = "";
+        _circleLine = "";
+        _propLine = "";
+        _storageLine = "";
+        _sTitle = "";
+        _sSchema = "";
+        _sProgram = "";
+        _sCircle = "";
+        _sPropIo = "";
+        _sStorageIo = "";
+        _sResetHint = "";
     }
 
     function onShow() as Void {

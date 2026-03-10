@@ -1,6 +1,7 @@
 import Toybox.WatchUi;
 import Toybox.Lang;
 
+(:high_res)
 class EGYMDiagnosticsDelegate extends WatchUi.BehaviorDelegate {
     private var _viewRef as WeakReference;
 
@@ -24,6 +25,12 @@ class EGYMDiagnosticsDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onBack() as Boolean {
+        if (_viewRef.stillAlive()) {
+            var view = _viewRef.get() as EGYMDiagnosticsView?;
+            if (view != null) {
+                view.release();
+            }
+        }
         WatchUi.popView(WatchUi.SLIDE_DOWN);
         return true;
     }

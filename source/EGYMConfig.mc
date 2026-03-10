@@ -301,6 +301,13 @@ class EGYMConfig {
         return prefix + ":" + goal + " " + method + " " + repsVal;
     }
 
+    (:low_mem)
+    static function getCircleName() as String {
+        var circleId = EGYMSafeStore.getPropertyNumber(EGYMKeys.ACTIVE_CIRCLE, 0);
+        return EGYMInstinctText.getCircleLabel(circleId);
+    }
+
+    (:high_res)
     static function getCircleName() as String {
         var circleId = EGYMSafeStore.getPropertyNumber(EGYMKeys.ACTIVE_CIRCLE, 0);
 
