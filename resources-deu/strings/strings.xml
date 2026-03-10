@@ -17,6 +17,7 @@
     <string id="FitMethodLabel">Methode</string>
     <string id="FitWattRecordsLabel">Rekorde</string>
     <string id="UnitNone">-</string>
+    <string id="UnitEmpty">&#8203;</string>
     <string id="SettingRM_Wadentrainer">Bestwert Wadentrainer (kg)</string>
     <string id="SettingWatt_Wadentrainer">Watt Wadentrainer</string>
     <!-- Stats View -->

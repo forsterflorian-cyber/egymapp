@@ -208,11 +208,15 @@ class EGYMSessionManager {
         // to avoid a double lap (session.stop() creates no additional lap).
         if (_lapDataDirty) {
             try {
-                session.addLap();
+                var lapAdded = session.addLap();
+                if (lapAdded) {
+                    _lapDataDirty = false;
+                } else {
+                    logSessionIssue("final addLap returned false.");
+                }
             } catch (e) {
                 logSessionIssue("final addLap failed.");
             }
-            _lapDataDirty = false;
         }
 
         try {
@@ -293,14 +297,15 @@ class EGYMSessionManager {
         }
 
         try {
-        if (session != null && session.isRecording() && _lapDataDirty) {
-                session.addLap();
-                
-                // Nach dem echten Speichern sofort den Puffer für die 
-                // unvermeidbare "Geisterrunde" beim Beenden leeren.
-                clearLapBuffers();
-                
-                _lapDataDirty = false; 
+            if (session != null && session.isRecording() && _lapDataDirty) {
+                var lapAdded = session.addLap();
+                if (lapAdded) {
+                    // Clear the lap field buffer only after a confirmed lap write.
+                    clearLapBuffers();
+                    _lapDataDirty = false;
+                } else {
+                    logSessionIssue("session.addLap returned false.");
+                }
             }
         } catch (e) {
             logSessionIssue("session.addLap failed.");

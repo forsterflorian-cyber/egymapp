@@ -1,5 +1,5 @@
 param(
-    [string[]]$Devices = @("epix2", "fenix6", "fr955", "fenix847mm", "fenix8solar51mm"),
+    [string[]]$Devices = @("epix2", "fr255", "fr955", "fenix847mm", "fenix8solar51mm", "instinct3solar45mm", "venu3", "vivoactive6"),
     [string]$ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path,
     [string]$MonkeyC = "monkeyc",
     [string]$SigningKey = "",
